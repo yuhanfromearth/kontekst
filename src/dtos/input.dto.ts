@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 const InputSchema = z.object({
   input: z.string(),
+  kontekstName: z.string().optional(),
 });
 
-// class is required for using DTO as a type
 export class InputDto extends createZodDto(InputSchema) {}

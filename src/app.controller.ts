@@ -1,17 +1,25 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import { AppService } from './app.service.js';
 import { LlmService } from './llm/llm.service.js';
 import { InputDto } from './dtos/input.dto.js';
+import { KontekstService } from './kontekst/kontekst.service.js';
+import { SaveDto } from './dtos/save.dto.js';
 
 @Controller()
 export class AppController {
   constructor(
-    private readonly appService: AppService,
     private readonly llmService: LlmService,
+    private readonly contextService: KontekstService,
   ) {}
 
   @Post()
   async generate(@Body() body: InputDto): Promise<string> {
-    return await this.llmService.generate(body.input);
+    const { input, kontekstName } = body;
+    return await this.llmService.generate(input, kontekstName);
+  }
+
+  @Post('kontekst')
+  saveKontekst(@Body() body: SaveDto): void {
+    const { name, content, overwrite } = body;
+    this.contextService.saveKontekst(name, content, overwrite);
   }
 }

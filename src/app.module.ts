@@ -5,9 +5,10 @@ import { LlmModule } from './llm/llm.module.js';
 import { ConfigModule } from '@nestjs/config';
 import { APP_PIPE } from '@nestjs/core';
 import { ZodValidationPipe } from 'nestjs-zod';
+import { KontekstModule } from './kontekst/kontekst.module.js';
 
 @Module({
-  imports: [ConfigModule.forRoot(), LlmModule],
+  imports: [ConfigModule.forRoot(), LlmModule, KontekstModule],
   controllers: [AppController],
   providers: [
     AppService,
