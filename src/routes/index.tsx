@@ -1,10 +1,12 @@
 import KontekstDisplay from "#/components/KontekstDisplay";
 import { Button } from "#/components/ui/button";
 import { Kbd } from "#/components/ui/kbd";
+import { Spinner } from "#/components/ui/spinner";
 import { Textarea } from "#/components/ui/textarea";
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
 
 export const Route = createFileRoute("/")({ component: App });
 
@@ -33,10 +35,29 @@ function App() {
       <form onSubmit={handleSubmit}>
         <Textarea
           placeholder="How can I help you?"
+          value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.metaKey && e.key === "Enter" && input.trim() !== "") {
+              e.preventDefault();
+              mutate({ input, kontekstName: selectedKontekst });
+              setInput("");
+            }
+          }}
         />
-        <Button className="mt-5 w-full" variant="outline" type="submit">
-          Send <Kbd>⌘ + Enter</Kbd>
+        <Button
+          className="mt-5 w-full"
+          variant="outline"
+          type="submit"
+          disabled={isPending}
+        >
+          {isPending ? (
+            <Spinner />
+          ) : (
+            <>
+              Send <Kbd>⌘ + Enter</Kbd>
+            </>
+          )}
         </Button>
       </form>
 
@@ -45,16 +66,11 @@ function App() {
         onSelect={setSelectedKontekst}
       />
 
-      <div className="mt-16">
-        {isPending && (
-          <p className="max-h-96 overflow-y-auto text-justify p-4">
-            Loading...
-          </p>
-        )}
-        {data && (
-          <p className="max-h-96 overflow-y-auto text-justify p-4">{data}</p>
-        )}
-      </div>
+      {data && (
+        <div className="prose max-w-none max-h-96 overflow-y-auto text-justify w-full mt-16">
+          <ReactMarkdown>{data}</ReactMarkdown>
+        </div>
+      )}
     </div>
   );
 }
