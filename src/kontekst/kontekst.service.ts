@@ -3,6 +3,15 @@ import fs from 'fs';
 
 @Injectable()
 export class KontekstService {
+  fetchKonteksts(): string[] {
+    const files = fs.readdirSync(process.env.SYSTEM_INSTRUCTIONS_FOLDER!);
+    const kontekstFiles = files.filter(
+      (file) => file.endsWith('.md') && !file.startsWith('base_'),
+    );
+
+    return kontekstFiles.map((file) => file.replace('.md', ''));
+  }
+
   getKontekst(name?: string): string {
     const base1 = fs.readFileSync(
       `${process.env.SYSTEM_INSTRUCTIONS_FOLDER}/base_1.md`,

@@ -6,14 +6,14 @@ import { KontekstService } from '../kontekst/kontekst.service.js';
 export class LlmService {
   private readonly client: OpenRouter;
 
-  constructor(private readonly contextService: KontekstService) {
+  constructor(private readonly kontekstService: KontekstService) {
     this.client = new OpenRouter({
       apiKey: process.env.OPENROUTER_API_KEY,
     });
   }
 
   async generate(input: string, kontekstName?: string): Promise<string> {
-    const kontekst = this.contextService.getKontekst(kontekstName);
+    const kontekst = this.kontekstService.getKontekst(kontekstName);
 
     const result = this.client.callModel({
       model: 'google/gemini-3-flash-preview',

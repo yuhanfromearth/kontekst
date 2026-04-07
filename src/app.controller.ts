@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { LlmService } from './llm/llm.service.js';
 import { InputDto } from './dtos/input.dto.js';
 import { KontekstService } from './kontekst/kontekst.service.js';
@@ -21,5 +21,10 @@ export class AppController {
   saveKontekst(@Body() body: SaveDto): void {
     const { name, content, overwrite } = body;
     this.contextService.saveKontekst(name, content, overwrite);
+  }
+
+  @Get('konteksts')
+  fetchKonteksts(): string[] {
+    return this.contextService.fetchKonteksts();
   }
 }
