@@ -89,6 +89,7 @@ export class KontekstService {
 
   setShortcut(kontekstName: string, shortcut: string): void {
     const normalizedName = kontekstName.trim().toLocaleLowerCase();
+    const normalizedShortcut = shortcut.trim().toLocaleLowerCase();
 
     const existing = this.fetchKonteksts();
     if (!existing.includes(normalizedName)) {
@@ -102,7 +103,8 @@ export class KontekstService {
 
     // Enforce shortcut uniqueness
     const conflict = Object.entries(shortcuts).find(
-      ([kontekstName, s]) => s === shortcut && kontekstName !== normalizedName,
+      ([kontekstName, s]) =>
+        s === normalizedShortcut && kontekstName !== normalizedName,
     );
     if (conflict) {
       throw new HttpException(
