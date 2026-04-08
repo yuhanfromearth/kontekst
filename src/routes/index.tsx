@@ -5,7 +5,7 @@ import { Spinner } from "#/components/ui/spinner";
 import { Textarea } from "#/components/ui/textarea";
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
 export const Route = createFileRoute("/")({ component: App });
@@ -15,6 +15,26 @@ function App() {
   const [selectedKontekst, setSelectedKontekst] = useState<
     string | undefined
   >();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        textareaRef.current?.blur();
+      }
+
+      // skip if already typing in an input
+      if (document.activeElement === textareaRef.current) return;
+
+      if (e.key === "/") {
+        e.preventDefault();
+        textareaRef.current?.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
 
   const { mutate, data, isPending } = useMutation({
     mutationFn: (payload: { input: string; kontekstName?: string }) =>
@@ -34,6 +54,7 @@ function App() {
     <div className="flex flex-col">
       <form onSubmit={handleSubmit}>
         <Textarea
+          ref={textareaRef}
           placeholder="How can I help you?"
           value={input}
           onChange={(e) => setInput(e.target.value)}
