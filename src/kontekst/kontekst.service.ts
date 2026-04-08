@@ -1,10 +1,13 @@
 import { HttpException, Injectable } from '@nestjs/common';
 import fs from 'fs';
+import { Shortcuts } from './interfaces/shortcuts.type.js';
 
 @Injectable()
 export class KontekstService {
+  private readonly SHORTCUTS_FILE = `shortcuts.json`;
+
   fetchKonteksts(): string[] {
-    const files = fs.readdirSync(process.env.SYSTEM_INSTRUCTIONS_FOLDER!);
+    const files = fs.readdirSync(`${process.env.KONTEKST_FOLDER}/konteksts`);
     const kontekstFiles = files.filter(
       (file) => file.endsWith('.md') && !file.startsWith('base_'),
     );
@@ -14,7 +17,7 @@ export class KontekstService {
 
   getKontekst(name?: string): string {
     const base1 = fs.readFileSync(
-      `${process.env.SYSTEM_INSTRUCTIONS_FOLDER}/base_1.md`,
+      `${process.env.KONTEKST_FOLDER}/konteksts/base_1.md`,
       'utf8',
     );
 
@@ -23,14 +26,14 @@ export class KontekstService {
     }
 
     const base2 = fs.readFileSync(
-      `${process.env.SYSTEM_INSTRUCTIONS_FOLDER}/base_2.md`,
+      `${process.env.KONTEKST_FOLDER}/konteksts/base_2.md`,
       'utf8',
     );
 
     const normalizedName = name.trim().toLocaleLowerCase();
     try {
       const context = fs.readFileSync(
-        `${process.env.SYSTEM_INSTRUCTIONS_FOLDER}/${normalizedName}.md`,
+        `${process.env.KONTEKST_FOLDER}/konteksts/${normalizedName}.md`,
         'utf8',
       );
       return `${base1}\n${base2}\n${context}`;
@@ -48,7 +51,7 @@ export class KontekstService {
     overwrite: boolean = false,
   ): void {
     const normalizedName = name.trim().toLocaleLowerCase();
-    const path = `${process.env.SYSTEM_INSTRUCTIONS_FOLDER}/${normalizedName}.md`;
+    const path = `${process.env.KONTEKST_FOLDER}/konteksts/${normalizedName}.md`;
 
     const exists = fs.existsSync(path);
 
@@ -60,5 +63,67 @@ export class KontekstService {
     }
 
     fs.writeFileSync(path, content);
+  }
+
+  private shortcutsPath(): string {
+    return `${process.env.KONTEKST_FOLDER}/${this.SHORTCUTS_FILE}`;
+  }
+
+  private readShortcuts(): Shortcuts {
+    const path = this.shortcutsPath();
+    if (!fs.existsSync(path)) {
+      fs.writeFileSync(path, '{}');
+      return {};
+    }
+
+    return JSON.parse(fs.readFileSync(path, 'utf8')) as Shortcuts;
+  }
+
+  private writeShortcuts(shortcuts: Shortcuts): void {
+    fs.writeFileSync(this.shortcutsPath(), JSON.stringify(shortcuts, null, 2));
+  }
+
+  getShortcuts(): Shortcuts {
+    return this.readShortcuts();
+  }
+
+  setShortcut(kontekstName: string, shortcut: string): void {
+    const normalizedName = kontekstName.trim().toLocaleLowerCase();
+
+    const existing = this.fetchKonteksts();
+    if (!existing.includes(normalizedName)) {
+      throw new HttpException(
+        `Kontekst with name '${kontekstName}' does not exist`,
+        404,
+      );
+    }
+
+    const shortcuts = this.readShortcuts();
+
+    // Enforce shortcut uniqueness
+    const conflict = Object.entries(shortcuts).find(
+      ([kontekstName, s]) => s === shortcut && kontekstName !== normalizedName,
+    );
+    if (conflict) {
+      throw new HttpException(
+        `Shortcut '${shortcut}' is already assigned to '${conflict[0]}'`,
+        409,
+      );
+    }
+
+    shortcuts[normalizedName] = shortcut;
+    this.writeShortcuts(shortcuts);
+  }
+
+  deleteShortcut(kontekstName: string): void {
+    const normalizedName = kontekstName.trim().toLocaleLowerCase();
+    const shortcuts = this.readShortcuts();
+
+    if (!(normalizedName in shortcuts)) {
+      throw new HttpException(`No shortcut assigned to '${kontekstName}'`, 404);
+    }
+
+    delete shortcuts[normalizedName];
+    this.writeShortcuts(shortcuts);
   }
 }
