@@ -3,7 +3,7 @@ import { Button } from "#/components/ui/button";
 import { Kbd } from "#/components/ui/kbd";
 import { Spinner } from "#/components/ui/spinner";
 import { Textarea } from "#/components/ui/textarea";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import MarkdownRenderer from "#/components/MarkdownRenderer";
@@ -43,6 +43,11 @@ function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       }).then((response) => response.text()),
+  });
+
+  const { data: shortcuts } = useQuery<Record<string, string>>({
+    queryKey: ["shortcuts"],
+    queryFn: () => fetch("/api/shortcuts").then((res) => res.json()),
   });
 
   const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
@@ -85,6 +90,7 @@ function App() {
       <KontekstDisplay
         selected={selectedKontekst}
         onSelect={setSelectedKontekst}
+        shortcuts={shortcuts}
       />
 
       {data && <MarkdownRenderer markdownString={data} />}
