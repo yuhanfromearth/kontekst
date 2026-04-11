@@ -7,7 +7,7 @@ const SaveKontekstSchema = z.object({
     .min(2)
     .max(64)
     .regex(/^[a-zA-Z0-9_]+$/),
-  content: z.string(),
+  content: z.string().min(1),
   overwrite: z.boolean().optional(),
   shortcut: z.string().optional(),
 });

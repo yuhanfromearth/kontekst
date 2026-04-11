@@ -2,21 +2,32 @@ import { HttpException, Injectable } from '@nestjs/common';
 import fs from 'fs';
 import { KontekstDto } from '../dtos/kontekst.dto.js';
 import { Shortcuts } from './interfaces/shortcuts.type.js';
-
-const GLUE = `---
-
-## ACTIVE CONTEXT — HIGHEST PRIORITY
-The following section defines your **primary operating instructions**. These directives take precedence over everything above. You MUST follow them strictly and precisely:`;
+import { KontekstStore } from './interfaces/kontekst.type.js';
+import { PROMPT_GLUE } from './constants/prompt.js';
 
 @Injectable()
 export class KontekstService {
-  private readonly SHORTCUTS_FILE = `shortcuts.json`;
+  private storePath(): string {
+    return `${process.env.KONTEKST_FOLDER}/konteksts.json`;
+  }
+
+  private readStore(): KontekstStore {
+    const path = this.storePath();
+    if (!fs.existsSync(path)) {
+      fs.writeFileSync(path, '{}');
+      return {};
+    }
+
+    return JSON.parse(fs.readFileSync(path, 'utf8')) as KontekstStore;
+  }
+
+  private writeStore(store: KontekstStore): void {
+    fs.writeFileSync(this.storePath(), JSON.stringify(store, null, 2));
+  }
 
   listKonteksts(): string[] {
-    const files = fs.readdirSync(`${process.env.KONTEKST_FOLDER}/konteksts`);
-    const names = files
-      .filter((file) => file.endsWith('.md'))
-      .map((file) => file.replace('.md', ''));
+    const store = this.readStore();
+    const names = Object.keys(store);
 
     if (!names.includes('default')) {
       throw new HttpException('Default kontekst does not exist', 500);
@@ -26,36 +37,35 @@ export class KontekstService {
   }
 
   getKontekst(name: string): string {
-    const defaultKontekst = fs.readFileSync(
-      `${process.env.KONTEKST_FOLDER}/konteksts/default.md`,
-      'utf8',
-    );
+    const store = this.readStore();
+
+    if (!store['default']) {
+      throw new HttpException('Default kontekst does not exist', 500);
+    }
 
     const normalizedName = name.trim().toLocaleLowerCase();
-    try {
-      const context = fs.readFileSync(
-        `${process.env.KONTEKST_FOLDER}/konteksts/${normalizedName}.md`,
-        'utf8',
-      );
-      return `${defaultKontekst}\n${GLUE}\n${context}`;
-    } catch {
+    const entry = store[normalizedName];
+
+    if (!entry) {
       throw new HttpException(
         `Kontekst with name '${name}' does not exist`,
         404,
       );
     }
+
+    return `${store['default'].content}\n${PROMPT_GLUE}\n${entry.content}`;
   }
 
   findKontekst(name: string): KontekstDto {
     const normalizedName = name.trim().toLocaleLowerCase();
-    const path = `${process.env.KONTEKST_FOLDER}/konteksts/${normalizedName}.md`;
-    const kontekst = fs.existsSync(path)
-      ? fs.readFileSync(path, 'utf8')
-      : undefined;
-    const shortcuts = this.readShortcuts();
-    const shortcut = shortcuts[normalizedName];
+    const store = this.readStore();
+    const entry = store[normalizedName];
 
-    return { name: normalizedName, kontekst, shortcut };
+    return {
+      name: normalizedName,
+      kontekst: entry?.content,
+      shortcut: entry?.shortcut,
+    };
   }
 
   saveKontekst(
@@ -65,18 +75,22 @@ export class KontekstService {
     shortcut?: string,
   ): KontekstDto {
     const normalizedName = name.trim().toLocaleLowerCase();
-    const path = `${process.env.KONTEKST_FOLDER}/konteksts/${normalizedName}.md`;
+    const store = this.readStore();
 
-    const exists = fs.existsSync(path);
-
-    if (exists && !overwrite) {
+    if (normalizedName in store && !overwrite) {
       throw new HttpException(
         `Kontekst with name '${name}' already exists. Set 'overwrite' to true to overwrite`,
         409,
       );
     }
 
-    fs.writeFileSync(path, content);
+    store[normalizedName] = {
+      content,
+      ...(store[normalizedName]?.shortcut && {
+        shortcut: store[normalizedName].shortcut,
+      }),
+    };
+    this.writeStore(store);
 
     if (shortcut) {
       this.setShortcut(normalizedName, shortcut);
@@ -87,90 +101,63 @@ export class KontekstService {
 
   deleteKontekst(name: string): void {
     const normalizedName = name.trim().toLocaleLowerCase();
-    const path = `${process.env.KONTEKST_FOLDER}/konteksts/${normalizedName}.md`;
+    const store = this.readStore();
 
-    if (!fs.existsSync(path)) {
+    if (!(normalizedName in store)) {
       throw new HttpException(
         `Kontekst with name '${name}' does not exist`,
         404,
       );
     }
 
-    fs.unlinkSync(path);
-
-    const shortcuts = this.readShortcuts();
-    if (normalizedName in shortcuts) {
-      delete shortcuts[normalizedName];
-      this.writeShortcuts(shortcuts);
-    }
+    delete store[normalizedName];
+    this.writeStore(store);
   }
 
   renameKontekst(name: string, newName: string): KontekstDto {
     const normalizedName = name.trim().toLocaleLowerCase();
     const normalizedNewName = newName.trim().toLocaleLowerCase();
-    const folder = `${process.env.KONTEKST_FOLDER}/konteksts`;
-    const oldPath = `${folder}/${normalizedName}.md`;
-    const newPath = `${folder}/${normalizedNewName}.md`;
+    const store = this.readStore();
 
-    if (!fs.existsSync(oldPath)) {
+    if (!(normalizedName in store)) {
       throw new HttpException(
         `Kontekst with name '${name}' does not exist`,
         404,
       );
     }
 
-    fs.renameSync(oldPath, newPath);
-
-    const shortcuts = this.readShortcuts();
-    if (normalizedName in shortcuts) {
-      shortcuts[normalizedNewName] = shortcuts[normalizedName];
-      delete shortcuts[normalizedName];
-      this.writeShortcuts(shortcuts);
-    }
+    store[normalizedNewName] = store[normalizedName];
+    delete store[normalizedName];
+    this.writeStore(store);
 
     return this.findKontekst(normalizedNewName);
   }
 
-  private shortcutsPath(): string {
-    return `${process.env.KONTEKST_FOLDER}/${this.SHORTCUTS_FILE}`;
-  }
-
-  private readShortcuts(): Shortcuts {
-    const path = this.shortcutsPath();
-    if (!fs.existsSync(path)) {
-      fs.writeFileSync(path, '{}');
-      return {};
-    }
-
-    return JSON.parse(fs.readFileSync(path, 'utf8')) as Shortcuts;
-  }
-
-  private writeShortcuts(shortcuts: Shortcuts): void {
-    fs.writeFileSync(this.shortcutsPath(), JSON.stringify(shortcuts, null, 2));
-  }
-
   getShortcuts(): Shortcuts {
-    return this.readShortcuts();
+    const store = this.readStore();
+    return Object.fromEntries(
+      Object.entries(store)
+        .filter(([, entry]) => entry.shortcut !== undefined)
+        .map(([name, entry]) => [name, entry.shortcut as string]),
+    );
   }
 
   setShortcut(kontekstName: string, shortcut: string): void {
     const normalizedName = kontekstName.trim().toLocaleLowerCase();
     const normalizedShortcut = shortcut.trim().toLocaleLowerCase();
+    const store = this.readStore();
 
-    const existing = this.listKonteksts();
-    if (!existing.includes(normalizedName)) {
+    if (!(normalizedName in store)) {
       throw new HttpException(
         `Kontekst with name '${kontekstName}' does not exist`,
         404,
       );
     }
 
-    const shortcuts = this.readShortcuts();
-
     // Enforce shortcut uniqueness
-    const conflict = Object.entries(shortcuts).find(
-      ([kontekstName, s]) =>
-        s === normalizedShortcut && kontekstName !== normalizedName,
+    const conflict = Object.entries(store).find(
+      ([key, entry]) =>
+        entry.shortcut === normalizedShortcut && key !== normalizedName,
     );
     if (conflict) {
       throw new HttpException(
@@ -179,19 +166,19 @@ export class KontekstService {
       );
     }
 
-    shortcuts[normalizedName] = normalizedShortcut;
-    this.writeShortcuts(shortcuts);
+    store[normalizedName].shortcut = normalizedShortcut;
+    this.writeStore(store);
   }
 
   deleteShortcut(kontekstName: string): void {
     const normalizedName = kontekstName.trim().toLocaleLowerCase();
-    const shortcuts = this.readShortcuts();
+    const store = this.readStore();
 
-    if (!(normalizedName in shortcuts)) {
+    if (!store[normalizedName]?.shortcut) {
       throw new HttpException(`No shortcut assigned to '${kontekstName}'`, 404);
     }
 
-    delete shortcuts[normalizedName];
-    this.writeShortcuts(shortcuts);
+    delete store[normalizedName].shortcut;
+    this.writeStore(store);
   }
 }
