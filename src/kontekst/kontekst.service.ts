@@ -55,7 +55,7 @@ export class KontekstService {
     const shortcuts = this.readShortcuts();
     const shortcut = shortcuts[normalizedName];
 
-    return { kontekst, shortcut };
+    return { name: normalizedName, kontekst, shortcut };
   }
 
   saveKontekst(
@@ -83,6 +83,32 @@ export class KontekstService {
     }
 
     return this.findKontekst(normalizedName);
+  }
+
+  renameKontekst(name: string, newName: string): KontekstDto {
+    const normalizedName = name.trim().toLocaleLowerCase();
+    const normalizedNewName = newName.trim().toLocaleLowerCase();
+    const folder = `${process.env.KONTEKST_FOLDER}/konteksts`;
+    const oldPath = `${folder}/${normalizedName}.md`;
+    const newPath = `${folder}/${normalizedNewName}.md`;
+
+    if (!fs.existsSync(oldPath)) {
+      throw new HttpException(
+        `Kontekst with name '${name}' does not exist`,
+        404,
+      );
+    }
+
+    fs.renameSync(oldPath, newPath);
+
+    const shortcuts = this.readShortcuts();
+    if (normalizedName in shortcuts) {
+      shortcuts[normalizedNewName] = shortcuts[normalizedName];
+      delete shortcuts[normalizedName];
+      this.writeShortcuts(shortcuts);
+    }
+
+    return this.findKontekst(normalizedNewName);
   }
 
   private shortcutsPath(): string {

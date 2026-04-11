@@ -1,8 +1,16 @@
-import { Body, Controller, Delete, Get, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { LlmService } from './llm/llm.service.js';
 import { InputDto } from './dtos/input.dto.js';
 import { KontekstService } from './kontekst/kontekst.service.js';
-import { SaveKontekstDto } from './dtos/save.dto.js';
+import { RenameKontekstDto, SaveKontekstDto } from './dtos/save.dto.js';
 import { DeleteShortcutDto, SaveShortcutDto } from './dtos/shortcut.dto.js';
 import type { KontekstDto } from './dtos/kontekst.dto.js';
 import type { Shortcuts } from './kontekst/interfaces/shortcuts.type.js';
@@ -29,6 +37,12 @@ export class AppController {
   saveKontekst(@Body() body: SaveKontekstDto): KontekstDto {
     const { name, content, overwrite, shortcut } = body;
     return this.contextService.saveKontekst(name, content, overwrite, shortcut);
+  }
+
+  @Patch('kontekst')
+  renameKontekst(@Body() body: RenameKontekstDto): KontekstDto {
+    const { name, newName } = body;
+    return this.contextService.renameKontekst(name, newName);
   }
 
   @Get('konteksts')
