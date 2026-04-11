@@ -64,6 +64,12 @@ export default function KontekstDisplay({
   });
 
   useEffect(() => {
+    if (selected === undefined && kontekstList.length > 0) {
+      onSelect(kontekstList[0]);
+    }
+  }, [kontekstList, selected, onSelect]);
+
+  useEffect(() => {
     if (!shortcuts) return;
 
     const handler = (e: KeyboardEvent) => {
@@ -86,13 +92,6 @@ export default function KontekstDisplay({
 
   return (
     <div className="flex w-full mt-8 flex-wrap justify-center gap-2">
-      <Badge
-        onClick={() => onSelect(undefined)}
-        variant={selected === undefined ? "default" : "outline"}
-        className="cursor-pointer"
-      >
-        Bob (default)
-      </Badge>
       {kontekstList.map((kontekst) => (
         <Badge
           key={kontekst}

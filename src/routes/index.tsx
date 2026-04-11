@@ -52,6 +52,8 @@ function App() {
 
   const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    if (!input) return;
     mutate({ input, kontekstName: selectedKontekst });
   };
 
