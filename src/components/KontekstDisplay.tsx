@@ -2,6 +2,7 @@ import { Badge } from "./ui/badge";
 import { Kbd } from "./ui/kbd";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
+import { useNavigate } from "@tanstack/react-router";
 
 interface KontekstDisplayProps {
   selected?: string;
@@ -27,7 +28,6 @@ function parseShortcut(shortcut: string) {
 }
 
 function matchesShortcut(e: KeyboardEvent, shortcut: string) {
-  console.log(e);
   const parsed = parseShortcut(shortcut);
   return (
     e.metaKey === parsed.meta &&
@@ -57,6 +57,7 @@ export default function KontekstDisplay({
   onSelect,
   shortcuts,
 }: KontekstDisplayProps) {
+  const navigate = useNavigate();
   const { data: kontekstList = [], isError } = useQuery({
     queryKey: ["konteksts"],
     queryFn: fetchKonteksts,
@@ -69,7 +70,6 @@ export default function KontekstDisplay({
       if (document.activeElement?.tagName === "TEXTAREA") return;
 
       for (const [kontekst, shortcut] of Object.entries(shortcuts)) {
-        console.log(kontekst);
         if (matchesShortcut(e, shortcut)) {
           e.preventDefault();
           onSelect(kontekst);
@@ -96,7 +96,14 @@ export default function KontekstDisplay({
       {kontekstList.map((kontekst) => (
         <Badge
           key={kontekst}
-          onClick={() => onSelect(kontekst)}
+          onClick={(e) => {
+            if (e.metaKey) {
+              e.preventDefault();
+              navigate({ to: "/kontekst/$name", params: { name: kontekst } });
+            } else {
+              onSelect(kontekst);
+            }
+          }}
           variant={selected === kontekst ? "default" : "outline"}
           className="cursor-pointer gap-1"
         >
