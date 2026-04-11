@@ -1,5 +1,6 @@
 import { HttpException, Injectable } from '@nestjs/common';
 import fs from 'fs';
+import { KontekstDto } from '../dtos/kontekst.dto.js';
 import { Shortcuts } from './interfaces/shortcuts.type.js';
 
 @Injectable()
@@ -45,11 +46,24 @@ export class KontekstService {
     }
   }
 
+  findKontekst(name: string): KontekstDto {
+    const normalizedName = name.trim().toLocaleLowerCase();
+    const path = `${process.env.KONTEKST_FOLDER}/konteksts/${normalizedName}.md`;
+    const kontekst = fs.existsSync(path)
+      ? fs.readFileSync(path, 'utf8')
+      : undefined;
+    const shortcuts = this.readShortcuts();
+    const shortcut = shortcuts[normalizedName];
+
+    return { kontekst, shortcut };
+  }
+
   saveKontekst(
     name: string,
     content: string,
     overwrite: boolean = false,
-  ): void {
+    shortcut?: string,
+  ): KontekstDto {
     const normalizedName = name.trim().toLocaleLowerCase();
     const path = `${process.env.KONTEKST_FOLDER}/konteksts/${normalizedName}.md`;
 
@@ -63,6 +77,12 @@ export class KontekstService {
     }
 
     fs.writeFileSync(path, content);
+
+    if (shortcut) {
+      this.setShortcut(normalizedName, shortcut);
+    }
+
+    return this.findKontekst(normalizedName);
   }
 
   private shortcutsPath(): string {
@@ -113,7 +133,7 @@ export class KontekstService {
       );
     }
 
-    shortcuts[normalizedName] = shortcut;
+    shortcuts[normalizedName] = normalizedShortcut;
     this.writeShortcuts(shortcuts);
   }
 

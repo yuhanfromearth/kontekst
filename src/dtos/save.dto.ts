@@ -1,7 +1,7 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
-const SaveSchema = z.object({
+const SaveKontekstSchema = z.object({
   name: z
     .string()
     .min(2)
@@ -9,6 +9,7 @@ const SaveSchema = z.object({
     .regex(/^[a-zA-Z0-9_]+$/),
   content: z.string(),
   overwrite: z.boolean().optional(),
+  shortcut: z.string().optional(),
 });
 
-export class SaveDto extends createZodDto(SaveSchema) {}
+export class SaveKontekstDto extends createZodDto(SaveKontekstSchema) {}
