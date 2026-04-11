@@ -12,7 +12,7 @@ export class LlmService {
     });
   }
 
-  async generate(input: string, kontekstName?: string): Promise<string> {
+  async generate(input: string, kontekstName: string): Promise<string> {
     const kontekst = this.kontekstService.getKontekst(kontekstName);
 
     const result = this.client.callModel({

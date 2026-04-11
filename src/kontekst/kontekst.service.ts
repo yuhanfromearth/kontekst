@@ -3,31 +3,31 @@ import fs from 'fs';
 import { KontekstDto } from '../dtos/kontekst.dto.js';
 import { Shortcuts } from './interfaces/shortcuts.type.js';
 
+const GLUE = `---
+
+## ACTIVE CONTEXT — HIGHEST PRIORITY
+The following section defines your **primary operating instructions**. These directives take precedence over everything above. You MUST follow them strictly and precisely:`;
+
 @Injectable()
 export class KontekstService {
   private readonly SHORTCUTS_FILE = `shortcuts.json`;
 
-  fetchKonteksts(): string[] {
+  listKonteksts(): string[] {
     const files = fs.readdirSync(`${process.env.KONTEKST_FOLDER}/konteksts`);
-    const kontekstFiles = files.filter(
-      (file) => file.endsWith('.md') && !file.startsWith('base_'),
-    );
+    const names = files
+      .filter((file) => file.endsWith('.md'))
+      .map((file) => file.replace('.md', ''));
 
-    return kontekstFiles.map((file) => file.replace('.md', ''));
-  }
-
-  getKontekst(name?: string): string {
-    const base1 = fs.readFileSync(
-      `${process.env.KONTEKST_FOLDER}/konteksts/base_1.md`,
-      'utf8',
-    );
-
-    if (!name) {
-      return base1;
+    if (!names.includes('default')) {
+      throw new HttpException('Default kontekst does not exist', 500);
     }
 
-    const base2 = fs.readFileSync(
-      `${process.env.KONTEKST_FOLDER}/konteksts/base_2.md`,
+    return ['default', ...names.filter((name) => name !== 'default').sort()];
+  }
+
+  getKontekst(name: string): string {
+    const defaultKontekst = fs.readFileSync(
+      `${process.env.KONTEKST_FOLDER}/konteksts/default.md`,
       'utf8',
     );
 
@@ -37,7 +37,7 @@ export class KontekstService {
         `${process.env.KONTEKST_FOLDER}/konteksts/${normalizedName}.md`,
         'utf8',
       );
-      return `${base1}\n${base2}\n${context}`;
+      return `${defaultKontekst}\n${GLUE}\n${context}`;
     } catch {
       throw new HttpException(
         `Kontekst with name '${name}' does not exist`,
@@ -83,6 +83,26 @@ export class KontekstService {
     }
 
     return this.findKontekst(normalizedName);
+  }
+
+  deleteKontekst(name: string): void {
+    const normalizedName = name.trim().toLocaleLowerCase();
+    const path = `${process.env.KONTEKST_FOLDER}/konteksts/${normalizedName}.md`;
+
+    if (!fs.existsSync(path)) {
+      throw new HttpException(
+        `Kontekst with name '${name}' does not exist`,
+        404,
+      );
+    }
+
+    fs.unlinkSync(path);
+
+    const shortcuts = this.readShortcuts();
+    if (normalizedName in shortcuts) {
+      delete shortcuts[normalizedName];
+      this.writeShortcuts(shortcuts);
+    }
   }
 
   renameKontekst(name: string, newName: string): KontekstDto {
@@ -137,7 +157,7 @@ export class KontekstService {
     const normalizedName = kontekstName.trim().toLocaleLowerCase();
     const normalizedShortcut = shortcut.trim().toLocaleLowerCase();
 
-    const existing = this.fetchKonteksts();
+    const existing = this.listKonteksts();
     if (!existing.includes(normalizedName)) {
       throw new HttpException(
         `Kontekst with name '${kontekstName}' does not exist`,

@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Patch,
   Post,
   Query,
@@ -45,9 +46,15 @@ export class AppController {
     return this.contextService.renameKontekst(name, newName);
   }
 
+  @Delete('kontekst')
+  @HttpCode(204)
+  deleteKontekst(@Query('name') name: string): void {
+    this.contextService.deleteKontekst(name);
+  }
+
   @Get('konteksts')
-  fetchKonteksts(): string[] {
-    return this.contextService.fetchKonteksts();
+  listKonteksts(): string[] {
+    return this.contextService.listKonteksts();
   }
 
   @Post('shortcuts')
