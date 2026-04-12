@@ -143,7 +143,7 @@ export default function KontekstDisplay({
             }
           }}
           variant={selected === kontekst ? "default" : "outline"}
-          className="cursor-pointer gap-1"
+          className="cursor-pointer gap-1 font-mono"
         >
           {kontekst}
           {shortcuts?.[kontekst] && selected !== kontekst && (

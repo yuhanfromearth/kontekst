@@ -141,7 +141,8 @@ function KontekstEditPage() {
     <Card className="max-w-lg mx-auto mt-8">
       <CardHeader>
         <CardTitle>
-          {isNew ? "Create" : "Edit"} {name}
+          {isNew ? "Create" : "Edit"}{" "}
+          <span className="font-mono">{name}</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
