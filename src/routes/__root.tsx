@@ -46,8 +46,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body className="min-h-screen bg-background">
-        <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <body className="h-dvh overflow-hidden bg-background">
+        <main className="h-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col">
           {children}
         </main>
         <TanStackDevtools

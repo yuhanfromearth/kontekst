@@ -7,7 +7,7 @@ export default function MarkdownRenderer({
   markdownString: string;
 }) {
   return (
-    <div className="prose max-w-none max-h-96 overflow-y-auto text-justify w-full mt-16">
+    <div className="prose max-w-none text-justify w-full [&_p]:leading-6 [&_p]:my-4">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{

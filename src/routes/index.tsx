@@ -1,17 +1,19 @@
 import KontekstDisplay from "#/components/KontekstDisplay";
+import ConversationHistory from "#/components/ConversationHistory";
 import { Button } from "#/components/ui/button";
 import { Kbd } from "#/components/ui/kbd";
 import { Spinner } from "#/components/ui/spinner";
 import { Textarea } from "#/components/ui/textarea";
+import type { Message } from "#/types/message";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import MarkdownRenderer from "#/components/MarkdownRenderer";
 
 export const Route = createFileRoute("/")({ component: App });
 
 function App() {
   const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
   const [selectedKontekst, setSelectedKontekst] = useState<
     string | undefined
   >();
@@ -36,13 +38,19 @@ function App() {
     return () => document.removeEventListener("keydown", handler);
   }, []);
 
-  const { mutate, data, isPending } = useMutation({
-    mutationFn: (payload: { input: string; kontekstName?: string }) =>
-      fetch("/api/", {
+  const { mutate, isPending } = useMutation({
+    mutationFn: (payload: { messages: Message[]; kontekstName?: string }) =>
+      fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       }).then((response) => response.text()),
+    onSuccess: (responseText) => {
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: responseText },
+      ]);
+    },
   });
 
   const { data: shortcuts } = useQuery<Record<string, string>>({
@@ -54,11 +62,17 @@ function App() {
     e.preventDefault();
 
     if (!input) return;
-    mutate({ input, kontekstName: selectedKontekst });
+    const updatedMessages: Message[] = [
+      ...messages,
+      { role: "user", content: input },
+    ];
+    setMessages(updatedMessages);
+    setInput("");
+    mutate({ messages: updatedMessages, kontekstName: selectedKontekst });
   };
 
   return (
-    <div className="flex flex-col">
+    <div className="flex-1 flex flex-col overflow-hidden px-1">
       <h2 className="font-bold text-2xl mb-8 ml-2">kontekst.</h2>
       <form onSubmit={handleSubmit}>
         <Textarea
@@ -69,8 +83,16 @@ function App() {
           onKeyDown={(e) => {
             if (e.metaKey && e.key === "Enter" && input.trim() !== "") {
               e.preventDefault();
-              mutate({ input, kontekstName: selectedKontekst });
+              const updatedMessages: Message[] = [
+                ...messages,
+                { role: "user", content: input },
+              ];
+              setMessages(updatedMessages);
               setInput("");
+              mutate({
+                messages: updatedMessages,
+                kontekstName: selectedKontekst,
+              });
             }
           }}
         />
@@ -96,7 +118,11 @@ function App() {
         shortcuts={shortcuts}
       />
 
-      {data && <MarkdownRenderer markdownString={data} />}
+      {messages.length > 0 && (
+        <div className="flex-1 min-h-0 overflow-y-auto mt-16">
+          <ConversationHistory messages={messages} />
+        </div>
+      )}
     </div>
   );
 }
