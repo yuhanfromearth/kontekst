@@ -26,9 +26,9 @@ export default function ConversationHistory({
             ref={isLast ? lastMessageRef : null}
             className="flex justify-end"
           >
-            <p className="bg-muted rounded-2xl px-4 py-2 max-w-[80%] text-base whitespace-pre-wrap">
-              {message.content}
-            </p>
+            <div className="bg-muted rounded-2xl px-4 py-2 max-w-[80%] text-base [&_.prose_p]:my-0">
+              <MarkdownRenderer markdownString={message.content} />
+            </div>
           </div>
         ) : (
           <div

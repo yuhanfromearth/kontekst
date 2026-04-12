@@ -1,7 +1,7 @@
 import { Badge } from "./ui/badge";
 import { Kbd } from "./ui/kbd";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 
 interface KontekstDisplayProps {
@@ -49,6 +49,8 @@ export default function KontekstDisplay({
   shortcuts,
 }: KontekstDisplayProps) {
   const navigate = useNavigate();
+  const [isCmdHeld, setIsCmdHeld] = useState(false);
+  const [hoveredKontekst, setHoveredKontekst] = useState<string | null>(null);
   const { data: kontekstList = [], isError } = useQuery({
     queryKey: ["konteksts"],
     queryFn: fetchKonteksts,
@@ -59,6 +61,25 @@ export default function KontekstDisplay({
       onSelect(kontekstList[0]);
     }
   }, [kontekstList, selected, onSelect]);
+
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "Meta") setIsCmdHeld(true);
+    };
+    const up = (e: KeyboardEvent) => {
+      if (e.key === "Meta") setIsCmdHeld(false);
+    };
+    const blur = () => setIsCmdHeld(false);
+    document.addEventListener("keydown", down);
+    document.addEventListener("keyup", up);
+    window.addEventListener("blur", blur);
+
+    return () => {
+      document.removeEventListener("keydown", down);
+      document.removeEventListener("keyup", up);
+      window.removeEventListener("blur", blur);
+    };
+  }, []);
 
   useEffect(() => {
     if (!shortcuts) return;
@@ -142,8 +163,10 @@ export default function KontekstDisplay({
               onSelect(kontekst);
             }
           }}
+          onMouseEnter={() => setHoveredKontekst(kontekst)}
+          onMouseLeave={() => setHoveredKontekst(null)}
           variant={selected === kontekst ? "default" : "outline"}
-          className="cursor-pointer gap-1 font-mono"
+          className={`gap-1 font-mono transition-opacity ${isCmdHeld && hoveredKontekst === kontekst ? "cursor-alias opacity-70 ring-2 ring-ring/50" : "cursor-pointer"}`}
         >
           {kontekst}
           {shortcuts?.[kontekst] && selected !== kontekst && (
