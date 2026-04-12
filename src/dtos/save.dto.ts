@@ -6,7 +6,7 @@ const SaveKontekstSchema = z.object({
     .string()
     .min(2)
     .max(64)
-    .regex(/^[a-zA-Z0-9_]+$/),
+    .regex(/^[a-zA-Z0-9 _-]+$/),
   content: z.string().min(1),
   overwrite: z.boolean().optional(),
   shortcut: z.string().optional(),
@@ -19,12 +19,12 @@ const RenameKontekstSchema = z.object({
     .string()
     .min(2)
     .max(64)
-    .regex(/^[a-zA-Z0-9_]+$/),
+    .regex(/^[a-zA-Z0-9 _-]+$/),
   newName: z
     .string()
     .min(2)
     .max(64)
-    .regex(/^[a-zA-Z0-9_]+$/),
+    .regex(/^[a-zA-Z0-9 _-]+$/),
 });
 
 export class RenameKontekstDto extends createZodDto(RenameKontekstSchema) {}

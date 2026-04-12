@@ -43,7 +43,7 @@ export class KontekstService {
       throw new HttpException('Default kontekst does not exist', 500);
     }
 
-    const normalizedName = name.trim().toLocaleLowerCase();
+    const normalizedName = name.trim();
     const entry = store[normalizedName];
 
     if (!entry) {
@@ -57,7 +57,7 @@ export class KontekstService {
   }
 
   findKontekst(name: string): KontekstDto {
-    const normalizedName = name.trim().toLocaleLowerCase();
+    const normalizedName = name.trim();
     const store = this.readStore();
     const entry = store[normalizedName];
 
@@ -74,7 +74,7 @@ export class KontekstService {
     overwrite: boolean = false,
     shortcut?: string,
   ): KontekstDto {
-    const normalizedName = name.trim().toLocaleLowerCase();
+    const normalizedName = name.trim();
     const store = this.readStore();
 
     if (normalizedName in store && !overwrite) {
@@ -84,12 +84,7 @@ export class KontekstService {
       );
     }
 
-    store[normalizedName] = {
-      content,
-      ...(store[normalizedName]?.shortcut && {
-        shortcut: store[normalizedName].shortcut,
-      }),
-    };
+    store[normalizedName] = { content };
     this.writeStore(store);
 
     if (shortcut) {
@@ -100,7 +95,7 @@ export class KontekstService {
   }
 
   deleteKontekst(name: string): void {
-    const normalizedName = name.trim().toLocaleLowerCase();
+    const normalizedName = name.trim();
     const store = this.readStore();
 
     if (!(normalizedName in store)) {
@@ -115,8 +110,8 @@ export class KontekstService {
   }
 
   renameKontekst(name: string, newName: string): KontekstDto {
-    const normalizedName = name.trim().toLocaleLowerCase();
-    const normalizedNewName = newName.trim().toLocaleLowerCase();
+    const normalizedName = name.trim();
+    const normalizedNewName = newName.trim();
     const store = this.readStore();
 
     if (!(normalizedName in store)) {
@@ -143,8 +138,8 @@ export class KontekstService {
   }
 
   setShortcut(kontekstName: string, shortcut: string): void {
-    const normalizedName = kontekstName.trim().toLocaleLowerCase();
-    const normalizedShortcut = shortcut.trim().toLocaleLowerCase();
+    const normalizedName = kontekstName.trim();
+    const normalizedShortcut = shortcut.trim();
     const store = this.readStore();
 
     if (!(normalizedName in store)) {
@@ -171,7 +166,7 @@ export class KontekstService {
   }
 
   deleteShortcut(kontekstName: string): void {
-    const normalizedName = kontekstName.trim().toLocaleLowerCase();
+    const normalizedName = kontekstName.trim();
     const store = this.readStore();
 
     if (!store[normalizedName]?.shortcut) {

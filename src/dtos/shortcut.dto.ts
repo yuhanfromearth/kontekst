@@ -6,7 +6,7 @@ const SaveShortcutSchema = z.object({
     .string()
     .min(2)
     .max(64)
-    .regex(/^[a-zA-Z0-9_]+$/),
+    .regex(/^[a-zA-Z0-9 _-]+$/),
   shortcut: z.string(),
 });
 
@@ -15,7 +15,7 @@ const DeleteShortcutSchema = z.object({
     .string()
     .min(2)
     .max(64)
-    .regex(/^[a-zA-Z0-9_]+$/),
+    .regex(/^[a-zA-Z0-9 _-]+$/),
 });
 
 export class SaveShortcutDto extends createZodDto(SaveShortcutSchema) {}
