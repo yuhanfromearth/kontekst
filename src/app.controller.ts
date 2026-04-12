@@ -13,6 +13,7 @@ import { InputDto } from './dtos/input.dto.js';
 import { KontekstService } from './kontekst/kontekst.service.js';
 import { RenameKontekstDto, SaveKontekstDto } from './dtos/save.dto.js';
 import { DeleteShortcutDto, SaveShortcutDto } from './dtos/shortcut.dto.js';
+import { ChatDto } from './dtos/chat.dto.js';
 import type { KontekstDto } from './dtos/kontekst.dto.js';
 import type { Shortcuts } from './kontekst/interfaces/shortcuts.type.js';
 
@@ -27,6 +28,12 @@ export class AppController {
   async generate(@Body() body: InputDto): Promise<string> {
     const { input, kontekstName } = body;
     return await this.llmService.generate(input, kontekstName);
+  }
+
+  @Post('chat')
+  async chat(@Body() body: ChatDto): Promise<string> {
+    const { kontekstName, messages } = body;
+    return await this.llmService.chat(messages, kontekstName);
   }
 
   @Get('kontekst')
