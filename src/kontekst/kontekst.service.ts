@@ -3,7 +3,6 @@ import fs from 'fs';
 import { KontekstDto } from '../dtos/kontekst.dto.js';
 import { Shortcuts } from './interfaces/shortcuts.type.js';
 import { KontekstStore } from './interfaces/kontekst.type.js';
-import { PROMPT_GLUE } from './constants/prompt.js';
 
 @Injectable()
 export class KontekstService {
@@ -79,7 +78,7 @@ export class KontekstService {
       );
     }
 
-    return `${store['default'].content}\n${PROMPT_GLUE}\n${entry.content}`;
+    return entry.content;
   }
 
   findKontekst(name: string): KontekstDto {
