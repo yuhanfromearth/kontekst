@@ -46,6 +46,15 @@ function KontekstEditPage() {
   const deleteRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") navigate({ to: "/" });
+    };
+    document.addEventListener("keydown", handler);
+
+    return () => document.removeEventListener("keydown", handler);
+  }, [navigate]);
+
+  useEffect(() => {
     if (!confirmDelete) return;
     const handler = (e: MouseEvent) => {
       // if the user clicks anywhere outside the delete confirmation button, cancel it
@@ -142,7 +151,13 @@ function KontekstEditPage() {
     <Card className="max-w-lg mx-auto mt-8">
       <CardHeader>
         <CardTitle>
-          {isNew ? "Create new Kontekst" : <>Edit <span className="font-mono">{name}</span></>}
+          {isNew ? (
+            "Create new Kontekst"
+          ) : (
+            <>
+              Edit <span className="font-mono">{name}</span>
+            </>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -156,9 +171,7 @@ function KontekstEditPage() {
               setNameError(null);
             }}
           />
-          {nameError && (
-            <p className="text-sm text-destructive">{nameError}</p>
-          )}
+          {nameError && <p className="text-sm text-destructive">{nameError}</p>}
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="kontekst">Context</Label>
