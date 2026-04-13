@@ -5,10 +5,11 @@ import { Button } from "#/components/ui/button";
 import { Kbd } from "#/components/ui/kbd";
 import { Spinner } from "#/components/ui/spinner";
 import { Textarea } from "#/components/ui/textarea";
-import type { Message } from "#/types/message";
+import type { ChatResponseDto, Message, TokenUsage } from "#/types/message";
 import type { ModelDto } from "#/types/model";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { formatTokens } from "#/lib/tokens";
 import { useEffect, useRef, useState } from "react";
 
 export const Route = createFileRoute("/")({ component: App });
@@ -21,6 +22,8 @@ function App() {
   >();
   const [selectedModel, setSelectedModel] = useState("");
   const [selectedModelName, setSelectedModelName] = useState("");
+  const [modelContextLength, setModelContextLength] = useState(0);
+  const [tokenUsage, setTokenUsage] = useState<TokenUsage | undefined>();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { data: defaultModel } = useQuery<ModelDto>({
@@ -32,6 +35,7 @@ function App() {
     if (defaultModel && !selectedModel) {
       setSelectedModel(defaultModel.id);
       setSelectedModelName(defaultModel.name);
+      setModelContextLength(defaultModel.contextLength);
     }
   }, [defaultModel, selectedModel]);
 
@@ -54,22 +58,44 @@ function App() {
     return () => document.removeEventListener("keydown", handler);
   }, []);
 
+  const [chatError, setChatError] = useState<string | undefined>();
+
   const { mutate, isPending } = useMutation({
-    mutationFn: (payload: {
+    mutationFn: async (payload: {
       messages: Message[];
       kontekstName?: string;
       model?: string;
-    }) =>
-      fetch("/api/chat", {
+    }) => {
+      const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-      }).then((response) => response.text()),
-    onSuccess: (responseText) => {
+      });
+
+      if (response.status === 413) {
+        throw new Error(
+          "Conversation is too large to send. Start a new conversation or switch to a model with a larger context window.",
+        );
+      }
+
+      if (!response.ok) {
+        throw new Error(`Request failed (${response.status})`);
+      }
+
+      return response.json() as Promise<ChatResponseDto>;
+    },
+    onSuccess: (response) => {
+      setChatError(undefined);
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: responseText },
+        { role: "assistant", content: response.content },
       ]);
+      setTokenUsage(response.usage);
+    },
+    onError: (error: Error, payload) => {
+      setChatError(error.message);
+      // roll back the optimistic user message
+      setMessages(payload.messages.slice(0, -1));
     },
   });
 
@@ -99,19 +125,33 @@ function App() {
     <div className="flex-1 flex flex-col overflow-hidden px-1">
       <h2 className="font-bold text-2xl mb-8 ml-2">kontekst.</h2>
       <form onSubmit={handleSubmit}>
-        <ModelSelector
-          selectedModel={selectedModel}
-          selectedModelName={selectedModelName}
-          onSelect={(id, name) => {
-            setSelectedModel(id);
-            setSelectedModelName(name);
-          }}
-        />
+        <div className="flex items-center justify-between mb-2">
+          <ModelSelector
+            selectedModel={selectedModel}
+            selectedModelName={selectedModelName}
+            onSelect={(id, name, contextLength) => {
+              setSelectedModel(id);
+              setSelectedModelName(name);
+              setModelContextLength(contextLength);
+            }}
+          />
+          {tokenUsage && modelContextLength > 0 && (
+            <span className="text-xs text-muted-foreground mr-1">
+              {formatTokens(tokenUsage.totalTokens)} /{" "}
+              {formatTokens(modelContextLength)} (
+              {Math.round((tokenUsage.totalTokens / modelContextLength) * 100)}
+              %)
+            </span>
+          )}
+        </div>
         <Textarea
           ref={textareaRef}
           placeholder="How can I help you? [/]"
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) => {
+            setInput(e.target.value);
+            setChatError(undefined);
+          }}
           onKeyDown={(e) => {
             if (e.metaKey && e.key === "Enter" && input.trim() !== "") {
               e.preventDefault();
@@ -143,6 +183,9 @@ function App() {
             </>
           )}
         </Button>
+        {chatError && (
+          <p className="text-xs text-destructive mt-2 ml-1">{chatError}</p>
+        )}
       </form>
 
       <KontekstDisplay

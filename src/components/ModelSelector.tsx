@@ -1,4 +1,5 @@
 import type { ModelDto } from "#/types/model";
+import { formatTokens } from "#/lib/tokens";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Input } from "#/components/ui/input";
@@ -11,11 +12,7 @@ import {
 interface ModelSelectorProps {
   selectedModel: string;
   selectedModelName?: string;
-  onSelect: (modelId: string, modelName: string) => void;
-}
-
-function formatContext(tokens: number): string {
-  return tokens >= 1000 ? `${Math.round(tokens / 1000)}k ctx` : `${tokens} ctx`;
+  onSelect: (modelId: string, modelName: string, contextLength: number) => void;
 }
 
 function formatPrice(perToken: string): string {
@@ -50,7 +47,7 @@ export default function ModelSelector({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger className="text-xs text-muted-foreground hover:text-foreground transition-colors mb-2 ml-1 cursor-pointer">
+      <PopoverTrigger className="text-xs text-muted-foreground hover:text-foreground transition-colors ml-1 cursor-pointer">
         {label}
       </PopoverTrigger>
       <PopoverContent className="w-96 p-2" align="start">
@@ -68,13 +65,13 @@ export default function ModelSelector({
               type="button"
               className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-accent transition-colors"
               onClick={() => {
-                onSelect(model.id, model.name);
+                onSelect(model.id, model.name, model.contextLength);
                 setOpen(false);
               }}
             >
               <div className="font-medium truncate">{model.name}</div>
               <div className="text-xs text-muted-foreground flex gap-2 mt-0.5">
-                <span>{formatContext(model.contextLength)}</span>
+                <span>{formatTokens(model.contextLength)} ctx</span>
                 <span>in {formatPrice(model.pricing.prompt)}</span>
                 <span>out {formatPrice(model.pricing.completion)}</span>
               </div>

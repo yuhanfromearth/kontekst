@@ -178,7 +178,9 @@ export default function KontekstDisplay({
         title="Create new Kontekst"
         variant="outline"
         className="cursor-pointer font-mono"
-        onClick={() => navigate({ to: "/kontekst/$name", params: { name: "new" } })}
+        onClick={() =>
+          navigate({ to: "/kontekst/$name", params: { name: "new" } })
+        }
       >
         +
       </Badge>
