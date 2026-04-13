@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { OpenRouter } from '@openrouter/sdk';
 import { KontekstService } from '../kontekst/kontekst.service.js';
 import { Message } from '../dtos/chat.dto.js';
+import { ChatResponseDto } from '../dtos/chat-response.dto.js';
 import { ModelDto, OpenRouterModelsResponse } from '../dtos/model.dto.js';
 
 const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models';
@@ -39,7 +40,7 @@ export class LlmService {
     messages: Message[],
     kontekstName: string,
     model: string,
-  ): Promise<string> {
+  ): Promise<ChatResponseDto> {
     const systemPrompt = this.kontekstService.getKontekst(kontekstName);
 
     const result = await this.client.chat.send({
@@ -49,7 +50,20 @@ export class LlmService {
       },
     });
 
-    return result.choices[0].message.content as string;
+    if (result.usage) {
+      return {
+        content: result.choices[0].message.content as string,
+        usage: {
+          completionTokens: result.usage.completionTokens,
+          promptTokens: result.usage.promptTokens,
+          totalTokens: result.usage.totalTokens,
+        },
+      };
+    }
+
+    return {
+      content: result.choices[0].message.content as string,
+    };
   }
 
   async getModels(search?: string, limit = 10): Promise<ModelDto[]> {

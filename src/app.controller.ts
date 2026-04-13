@@ -15,6 +15,7 @@ import { KontekstService } from './kontekst/kontekst.service.js';
 import { RenameKontekstDto, SaveKontekstDto } from './dtos/save.dto.js';
 import { DeleteShortcutDto, SaveShortcutDto } from './dtos/shortcut.dto.js';
 import { ChatDto } from './dtos/chat.dto.js';
+import type { ChatResponseDto } from './dtos/chat-response.dto.js';
 import type { KontekstDto } from './dtos/kontekst.dto.js';
 import type { Shortcuts } from './kontekst/interfaces/shortcuts.type.js';
 import type { ModelDto } from './dtos/model.dto.js';
@@ -33,7 +34,7 @@ export class AppController {
   }
 
   @Post('chat')
-  async chat(@Body() body: ChatDto): Promise<string> {
+  async chat(@Body() body: ChatDto): Promise<ChatResponseDto> {
     const { kontekstName, messages, model } = body;
     return await this.llmService.chat(messages, kontekstName, model);
   }
