@@ -6,9 +6,12 @@ const MessageSchema = z.object({
   content: z.string(),
 });
 
+const DEFAULT_MODEL = 'google/gemini-3-flash-preview';
+
 const ChatSchema = z.object({
   kontekstName: z.string(),
   messages: z.array(MessageSchema).min(1),
+  model: z.string().optional().default(DEFAULT_MODEL),
 });
 
 export type Message = z.infer<typeof MessageSchema>;

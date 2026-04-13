@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   HttpCode,
+  ParseIntPipe,
   Patch,
   Post,
   Query,
@@ -16,6 +17,7 @@ import { DeleteShortcutDto, SaveShortcutDto } from './dtos/shortcut.dto.js';
 import { ChatDto } from './dtos/chat.dto.js';
 import type { KontekstDto } from './dtos/kontekst.dto.js';
 import type { Shortcuts } from './kontekst/interfaces/shortcuts.type.js';
+import type { ModelDto } from './dtos/model.dto.js';
 
 @Controller()
 export class AppController {
@@ -26,14 +28,27 @@ export class AppController {
 
   @Post()
   async generate(@Body() body: InputDto): Promise<string> {
-    const { input, kontekstName } = body;
-    return await this.llmService.generate(input, kontekstName);
+    const { input, kontekstName, model } = body;
+    return await this.llmService.generate(input, kontekstName, model);
   }
 
   @Post('chat')
   async chat(@Body() body: ChatDto): Promise<string> {
-    const { kontekstName, messages } = body;
-    return await this.llmService.chat(messages, kontekstName);
+    const { kontekstName, messages, model } = body;
+    return await this.llmService.chat(messages, kontekstName, model);
+  }
+
+  @Get('models/default')
+  getDefaultModel(): Promise<ModelDto> {
+    return this.llmService.getDefaultModel();
+  }
+
+  @Get('models')
+  getModels(
+    @Query('search') search?: string,
+    @Query('limit', ParseIntPipe) limit = 10,
+  ): Promise<ModelDto[]> {
+    return this.llmService.getModels(search, limit);
   }
 
   @Get('kontekst')
