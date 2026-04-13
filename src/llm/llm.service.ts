@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { OpenRouter } from '@openrouter/sdk';
 import { KontekstService } from '../kontekst/kontekst.service.js';
 import { Message } from '../dtos/chat.dto.js';
-import { ChatResponseDto } from '../dtos/chat-response.dto.js';
+import { LlmChatResult } from '../dtos/chat-response.dto.js';
 import { ModelDto, OpenRouterModelsResponse } from '../dtos/model.dto.js';
 
 const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models';
@@ -18,29 +18,11 @@ export class LlmService {
     });
   }
 
-  async generate(
-    input: string,
-    kontekstName: string,
-    model: string,
-  ): Promise<string> {
-    const kontekst = this.kontekstService.getKontekst(kontekstName);
-
-    const result = this.client.callModel({
-      model,
-      instructions: kontekst,
-      input,
-    });
-
-    const text = await result.getText();
-
-    return text;
-  }
-
   async chat(
     messages: Message[],
     kontekstName: string,
     model: string,
-  ): Promise<ChatResponseDto> {
+  ): Promise<LlmChatResult> {
     const systemPrompt = this.kontekstService.getKontekst(kontekstName);
 
     const result = await this.client.chat.send({

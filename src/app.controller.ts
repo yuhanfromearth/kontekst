@@ -10,11 +10,11 @@ import {
   Query,
 } from '@nestjs/common';
 import { LlmService } from './llm/llm.service.js';
-import { InputDto } from './dtos/input.dto.js';
 import { KontekstService } from './kontekst/kontekst.service.js';
 import { RenameKontekstDto, SaveKontekstDto } from './dtos/save.dto.js';
 import { DeleteShortcutDto, SaveShortcutDto } from './dtos/shortcut.dto.js';
 import { ChatDto } from './dtos/chat.dto.js';
+import { ConversationService } from './conversation/conversation.service.js';
 import type { ChatResponseDto } from './dtos/chat-response.dto.js';
 import type { KontekstDto } from './dtos/kontekst.dto.js';
 import type { Shortcuts } from './kontekst/interfaces/shortcuts.type.js';
@@ -25,18 +25,18 @@ export class AppController {
   constructor(
     private readonly llmService: LlmService,
     private readonly kontekstService: KontekstService,
+    private readonly conversationService: ConversationService,
   ) {}
-
-  @Post()
-  async generate(@Body() body: InputDto): Promise<string> {
-    const { input, kontekstName, model } = body;
-    return await this.llmService.generate(input, kontekstName, model);
-  }
 
   @Post('chat')
   async chat(@Body() body: ChatDto): Promise<ChatResponseDto> {
-    const { kontekstName, messages, model } = body;
-    return await this.llmService.chat(messages, kontekstName, model);
+    const { conversationId, kontekstName, message, model } = body;
+    return this.conversationService.chat(
+      conversationId,
+      kontekstName,
+      message,
+      model,
+    );
   }
 
   @Get('models/default')

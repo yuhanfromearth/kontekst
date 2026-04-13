@@ -4,7 +4,13 @@ export interface TokenUsage {
   totalTokens: number;
 }
 
+export interface LlmChatResult {
+  content: string;
+  usage?: TokenUsage;
+}
+
 export interface ChatResponseDto {
+  conversationId: string;
   content: string;
   usage?: TokenUsage;
 }

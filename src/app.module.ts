@@ -6,9 +6,15 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_PIPE } from '@nestjs/core';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { KontekstModule } from './kontekst/kontekst.module.js';
+import { ConversationModule } from './conversation/conversation.module.js';
 
 @Module({
-  imports: [ConfigModule.forRoot(), LlmModule, KontekstModule],
+  imports: [
+    ConfigModule.forRoot(),
+    LlmModule,
+    KontekstModule,
+    ConversationModule,
+  ],
   controllers: [AppController],
   providers: [
     AppService,
