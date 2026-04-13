@@ -33,7 +33,33 @@ export class KontekstService {
       throw new HttpException('Default kontekst does not exist', 500);
     }
 
-    return ['default', ...names.filter((name) => name !== 'default').sort()];
+    const defaultName =
+      Object.entries(store).find(([, entry]) => entry.isDefault)?.[0] ??
+      'default';
+
+    return [
+      defaultName,
+      ...names.filter((name) => name !== defaultName).sort(),
+    ];
+  }
+
+  setDefaultKontekst(name: string): void {
+    const normalizedName = name.trim();
+    const store = this.readStore();
+
+    if (!(normalizedName in store)) {
+      throw new HttpException(
+        `Kontekst with name '${name}' does not exist`,
+        404,
+      );
+    }
+
+    for (const entry of Object.values(store)) {
+      delete entry.isDefault;
+    }
+
+    store[normalizedName].isDefault = true;
+    this.writeStore(store);
   }
 
   getKontekst(name: string): string {

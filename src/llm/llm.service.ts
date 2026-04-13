@@ -6,11 +6,12 @@ import { LlmChatResult } from '../dtos/chat-response.dto.js';
 import { ModelDto, OpenRouterModelsResponse } from '../dtos/model.dto.js';
 
 const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models';
-export const DEFAULT_MODEL = 'google/gemini-3-flash-preview';
+const INITIAL_DEFAULT_MODEL = 'google/gemini-3-flash-preview';
 
 @Injectable()
 export class LlmService {
   private readonly client: OpenRouter;
+  private defaultModel = INITIAL_DEFAULT_MODEL;
 
   constructor(private readonly kontekstService: KontekstService) {
     this.client = new OpenRouter({
@@ -76,6 +77,10 @@ export class LlmService {
     return filtered.slice(0, limit);
   }
 
+  setDefaultModel(modelId: string): void {
+    this.defaultModel = modelId;
+  }
+
   async getDefaultModel(): Promise<ModelDto> {
     const response = await fetch(OPENROUTER_MODELS_URL, {
       headers: { Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}` },
@@ -83,10 +88,10 @@ export class LlmService {
 
     const json = (await response.json()) as OpenRouterModelsResponse;
 
-    const match = json.data.find((m) => m.id === DEFAULT_MODEL);
+    const match = json.data.find((m) => m.id === this.defaultModel);
 
     if (!match) {
-      throw new Error(`Default model '${DEFAULT_MODEL}' not found`);
+      throw new Error(`Default model '${this.defaultModel}' not found`);
     }
 
     return {

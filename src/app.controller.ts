@@ -11,7 +11,11 @@ import {
 } from '@nestjs/common';
 import { LlmService } from './llm/llm.service.js';
 import { KontekstService } from './kontekst/kontekst.service.js';
-import { RenameKontekstDto, SaveKontekstDto } from './dtos/save.dto.js';
+import {
+  RenameKontekstDto,
+  SaveKontekstDto,
+  SetDefaultKontekstDto,
+} from './dtos/save.dto.js';
 import { DeleteShortcutDto, SaveShortcutDto } from './dtos/shortcut.dto.js';
 import { ChatDto } from './dtos/chat.dto.js';
 import { ConversationService } from './conversation/conversation.service.js';
@@ -19,6 +23,7 @@ import type { ChatResponseDto } from './dtos/chat-response.dto.js';
 import type { KontekstDto } from './dtos/kontekst.dto.js';
 import type { Shortcuts } from './kontekst/interfaces/shortcuts.type.js';
 import type { ModelDto } from './dtos/model.dto.js';
+import { SetDefaultModelDto } from './dtos/model.dto.js';
 
 @Controller()
 export class AppController {
@@ -42,6 +47,12 @@ export class AppController {
   @Get('models/default')
   getDefaultModel(): Promise<ModelDto> {
     return this.llmService.getDefaultModel();
+  }
+
+  @Post('models/default')
+  @HttpCode(204)
+  setDefaultModel(@Body() body: SetDefaultModelDto): void {
+    this.llmService.setDefaultModel(body.modelId);
   }
 
   @Get('models')
@@ -83,6 +94,12 @@ export class AppController {
   @Get('konteksts')
   listKonteksts(): string[] {
     return this.kontekstService.listKonteksts();
+  }
+
+  @Post('konteksts/default')
+  @HttpCode(204)
+  setDefaultKontekst(@Body() body: SetDefaultKontekstDto): void {
+    this.kontekstService.setDefaultKontekst(body.name);
   }
 
   @Post('shortcuts')

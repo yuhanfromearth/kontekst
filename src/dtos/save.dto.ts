@@ -28,3 +28,15 @@ const RenameKontekstSchema = z.object({
 });
 
 export class RenameKontekstDto extends createZodDto(RenameKontekstSchema) {}
+
+const SetDefaultKontekstSchema = z.object({
+  name: z
+    .string()
+    .min(2)
+    .max(64)
+    .regex(/^[a-zA-Z0-9 _-]+$/),
+});
+
+export class SetDefaultKontekstDto extends createZodDto(
+  SetDefaultKontekstSchema,
+) {}
