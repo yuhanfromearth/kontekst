@@ -21,7 +21,7 @@ function App() {
     string | undefined
   >();
   const [selectedModel, setSelectedModel] = useState("");
-  const [selectedModelName, setSelectedModelName] = useState("");
+  const [selectedModelDto, setSelectedModelDto] = useState<ModelDto | undefined>();
   const [modelContextLength, setModelContextLength] = useState(0);
   const [tokenUsage, setTokenUsage] = useState<TokenUsage | undefined>();
   const [conversationId, setConversationId] = useState<string | undefined>();
@@ -35,7 +35,7 @@ function App() {
   useEffect(() => {
     if (defaultModel && !selectedModel) {
       setSelectedModel(defaultModel.id);
-      setSelectedModelName(defaultModel.name);
+      setSelectedModelDto(defaultModel);
       setModelContextLength(defaultModel.contextLength);
     }
   }, [defaultModel, selectedModel]);
@@ -137,11 +137,11 @@ function App() {
         <div className="flex items-center justify-between mb-2">
           <ModelSelector
             selectedModel={selectedModel}
-            selectedModelName={selectedModelName}
-            onSelect={(id, name, contextLength) => {
-              setSelectedModel(id);
-              setSelectedModelName(name);
-              setModelContextLength(contextLength);
+            selectedModelDto={selectedModelDto}
+            onSelect={(model) => {
+              setSelectedModel(model.id);
+              setSelectedModelDto(model);
+              setModelContextLength(model.contextLength);
             }}
           />
           {tokenUsage && modelContextLength > 0 && (

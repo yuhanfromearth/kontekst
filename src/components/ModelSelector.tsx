@@ -11,8 +11,8 @@ import {
 
 interface ModelSelectorProps {
   selectedModel: string;
-  selectedModelName?: string;
-  onSelect: (modelId: string, modelName: string, contextLength: number) => void;
+  selectedModelDto?: ModelDto;
+  onSelect: (model: ModelDto) => void;
 }
 
 function formatPrice(perToken: string): string {
@@ -22,7 +22,7 @@ function formatPrice(perToken: string): string {
 
 export default function ModelSelector({
   selectedModel,
-  selectedModelName,
+  selectedModelDto,
   onSelect,
 }: ModelSelectorProps) {
   const [open, setOpen] = useState(false);
@@ -43,7 +43,16 @@ export default function ModelSelector({
     enabled: open,
   });
 
-  const label = selectedModelName || selectedModel || "select model";
+  // Pin the selected model at the top if it isn't in the current results
+  const hasSelectedInResults = models?.some((m) => m.id === selectedModel);
+  const displayModels: ModelDto[] = [
+    ...(selectedModelDto && !hasSelectedInResults ? [selectedModelDto] : []),
+    ...(models?.slice().sort((a, b) =>
+      a.id === selectedModel ? -1 : b.id === selectedModel ? 1 : 0,
+    ) ?? []),
+  ];
+
+  const label = selectedModelDto?.name || selectedModel || "select model";
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -59,13 +68,13 @@ export default function ModelSelector({
           className="mb-2"
         />
         <div className="max-h-60 overflow-y-auto flex flex-col gap-0.5">
-          {models?.map((model) => (
+          {displayModels.map((model) => (
             <button
               key={model.id}
               type="button"
-              className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-accent transition-colors"
+              className={`w-full text-left px-2 py-1.5 text-sm rounded hover:bg-accent transition-colors ${model.id === selectedModel ? "bg-accent" : ""}`}
               onClick={() => {
-                onSelect(model.id, model.name, model.contextLength);
+                onSelect(model);
                 setOpen(false);
               }}
             >
@@ -77,7 +86,7 @@ export default function ModelSelector({
               </div>
             </button>
           ))}
-          {models?.length === 0 && (
+          {displayModels.length === 0 && (
             <p className="text-xs text-muted-foreground px-2 py-1.5">
               No models found.
             </p>
