@@ -34,25 +34,32 @@ export default function ConversationHistory({
           Math.max(0, containerHeight - userHeight - assistantHeight - GAP * 2),
         );
       }
+
+      // Scroll inside recalculate (not in a spacerHeight effect) so it fires even
+      // when spacerHeight doesn't change — e.g. returning from another page where
+      // the container is already the correct size.
+      if (pendingScrollRef.current) {
+        pendingScrollRef.current = false;
+        requestAnimationFrame(() => {
+          lastUserMessageRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        });
+      }
     };
 
     pendingScrollRef.current = true;
-    recalculate();
+    // rAF ensures DOM heights are available before measuring on first render/remount.
+    const raf = requestAnimationFrame(recalculate);
 
     const observer = new ResizeObserver(recalculate);
     observer.observe(scrollContainer);
-    return () => observer.disconnect();
+    return () => {
+      cancelAnimationFrame(raf);
+      observer.disconnect();
+    };
   }, [messages.length]);
-
-  // Scroll after the new spacerHeight has been painted to the DOM
-  useEffect(() => {
-    if (!pendingScrollRef.current) return;
-    pendingScrollRef.current = false;
-    lastUserMessageRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-  }, [spacerHeight]);
 
   const lastUserIdx = messages.findLastIndex(
     (message: Message) => message.role === "user",
