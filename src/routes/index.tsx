@@ -1,5 +1,6 @@
 import KontekstDisplay from "#/components/KontekstDisplay";
 import ConversationHistory from "#/components/ConversationHistory";
+import ConversationDisplay from "#/components/ConversationDisplay";
 import ModelSelector from "#/components/ModelSelector";
 import { Button } from "#/components/ui/button";
 import { Kbd } from "#/components/ui/kbd";
@@ -7,7 +8,7 @@ import { Spinner } from "#/components/ui/spinner";
 import { Textarea } from "#/components/ui/textarea";
 import type { ChatResponseDto } from "#/types/message";
 import type { ModelDto } from "#/types/model";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { formatTokens } from "#/lib/tokens";
 import { useEffect, useRef, useState } from "react";
@@ -35,6 +36,7 @@ function App() {
   } = useConversation();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const ignorePendingRef = useRef(false);
+  const queryClient = useQueryClient();
 
   const { data: defaultModel } = useQuery<ModelDto>({
     queryKey: ["models", "default"],
@@ -112,6 +114,7 @@ function App() {
         { role: "assistant", content: response.content },
       ]);
       setTokenUsage(response.usage);
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
     },
     onError: (error: Error) => {
       if (ignorePendingRef.current) {
@@ -153,14 +156,17 @@ function App() {
     <div className="flex-1 flex flex-col overflow-hidden px-1">
       <div className="flex items-center justify-between mb-8">
         <h2 className="font-bold text-2xl ml-2">kontekst.</h2>
-        <button
-          type="button"
-          onClick={() => navigate({ to: "/shortcuts" })}
-          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-          title="Keyboard shortcuts"
-        >
-          ?
-        </button>
+        <div className="flex items-center gap-1">
+          <ConversationDisplay />
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/shortcuts" })}
+            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            title="Keyboard shortcuts"
+          >
+            ?
+          </button>
+        </div>
       </div>
       <form onSubmit={handleSubmit}>
         <div className="flex items-center justify-between mb-2">

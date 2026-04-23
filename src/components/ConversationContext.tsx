@@ -1,6 +1,7 @@
 import { createContext, useContext, useState } from "react";
 import type { Message, TokenUsage } from "#/types/message";
 import type { ModelDto } from "#/types/model";
+import type { ConversationDto } from "#/types/conversation";
 
 interface ConversationState {
   messages: Message[];
@@ -17,6 +18,7 @@ interface ConversationState {
   setSelectedModelDto: (dto: ModelDto | undefined) => void;
   modelContextLength: number;
   setModelContextLength: (len: number) => void;
+  loadConversation: (dto: ConversationDto) => void;
 }
 
 const ConversationContext = createContext<ConversationState | undefined>(
@@ -40,6 +42,15 @@ export function ConversationProvider({
   >();
   const [modelContextLength, setModelContextLength] = useState(0);
 
+  const loadConversation = (dto: ConversationDto) => {
+    setMessages(dto.messages);
+    setConversationId(dto.id);
+    setSelectedKontekst(dto.kontekstName);
+    setSelectedModel(dto.model);
+    setSelectedModelDto(undefined);
+    setTokenUsage(undefined);
+  };
+
   return (
     <ConversationContext.Provider
       value={{
@@ -57,6 +68,7 @@ export function ConversationProvider({
         setSelectedModelDto,
         modelContextLength,
         setModelContextLength,
+        loadConversation,
       }}
     >
       {children}
