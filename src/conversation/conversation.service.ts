@@ -5,13 +5,17 @@ import type {
   ConversationDto,
   ConversationSummary,
 } from '../dtos/conversation.dto.js';
+import { KontekstService } from '../kontekst/kontekst.service.js';
 import { LlmService } from '../llm/llm.service.js';
 import { ConversationEntry } from './interfaces/conversation.interface.js';
 import { ConversationStore } from './interfaces/conversation-store.type.js';
 
 @Injectable()
 export class ConversationService {
-  constructor(private readonly llmService: LlmService) {}
+  constructor(
+    private readonly llmService: LlmService,
+    private readonly kontekstService: KontekstService,
+  ) {}
 
   async chat(
     conversationId: string | undefined,
@@ -34,20 +38,27 @@ export class ConversationService {
     const conversation = this.findEntry(store, id);
     conversation.messages.push({ role: 'user', content: message });
 
-    const res = await this.llmService.chat(
-      conversation.messages,
+    const systemPrompt = this.kontekstService.getKontekst(
       conversation.kontekstName,
-      conversation.model,
     );
 
-    conversation.messages.push({ role: 'assistant', content: res.content });
-
-    if (!conversation.title) {
-      conversation.title = await this.llmService.generateTitle(
-        message,
+    const [res, title] = await Promise.all([
+      this.llmService.chat(
+        conversation.messages,
+        systemPrompt,
         conversation.model,
-      );
-    }
+      ),
+      conversation.title
+        ? Promise.resolve(conversation.title)
+        : this.llmService.generateTitle(
+            systemPrompt,
+            message,
+            conversation.model,
+          ),
+    ]);
+
+    conversation.messages.push({ role: 'assistant', content: res.content });
+    conversation.title = title;
 
     this.writeStore(store);
 

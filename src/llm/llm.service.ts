@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { OpenRouter } from '@openrouter/sdk';
-import { KontekstService } from '../kontekst/kontekst.service.js';
 import { Message } from '../dtos/chat.dto.js';
 import { LlmChatResult } from '../dtos/chat-response.dto.js';
 import { ModelDto, OpenRouterModelsResponse } from '../dtos/model.dto.js';
@@ -13,7 +12,7 @@ export class LlmService {
   private readonly client: OpenRouter;
   private defaultModel = INITIAL_DEFAULT_MODEL;
 
-  constructor(private readonly kontekstService: KontekstService) {
+  constructor() {
     this.client = new OpenRouter({
       apiKey: process.env.OPENROUTER_API_KEY,
     });
@@ -21,11 +20,9 @@ export class LlmService {
 
   async chat(
     messages: Message[],
-    kontekstName: string,
+    systemPrompt: string,
     model: string,
   ): Promise<LlmChatResult> {
-    const systemPrompt = this.kontekstService.getKontekst(kontekstName);
-
     const result = await this.client.chat.send({
       chatRequest: {
         model,
@@ -49,17 +46,20 @@ export class LlmService {
     };
   }
 
-  async generateTitle(userMessage: string, model: string): Promise<string> {
+  async generateTitle(
+    systemPrompt: string,
+    userMessage: string,
+    model: string,
+  ): Promise<string> {
     const result = await this.client.chat.send({
       chatRequest: {
         model,
         messages: [
+          { role: 'system', content: systemPrompt },
           {
-            role: 'system',
-            content:
-              'Generate a concise 3-6 word title for a conversation that begins with the given user message. Respond with only the title — no quotes, no trailing punctuation.',
+            role: 'user',
+            content: `Generate a concise 3-6 word title for a new conversation that begins with this message:\n\n"${userMessage}"\n\nRespond with ONLY the title — no quotes, no trailing punctuation, no explanation.`,
           },
-          { role: 'user', content: userMessage },
         ],
       },
     });
