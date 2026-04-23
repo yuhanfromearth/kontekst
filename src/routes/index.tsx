@@ -34,6 +34,7 @@ function App() {
     setModelContextLength,
   } = useConversation();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const ignorePendingRef = useRef(false);
 
   const { data: defaultModel } = useQuery<ModelDto>({
     queryKey: ["models", "default"],
@@ -100,6 +101,10 @@ function App() {
       return response.json() as Promise<ChatResponseDto>;
     },
     onSuccess: (response) => {
+      if (ignorePendingRef.current) {
+        ignorePendingRef.current = false;
+        return;
+      }
       setChatError(undefined);
       setConversationId(response.conversationId);
       setMessages((prev) => [
@@ -109,6 +114,10 @@ function App() {
       setTokenUsage(response.usage);
     },
     onError: (error: Error) => {
+      if (ignorePendingRef.current) {
+        ignorePendingRef.current = false;
+        return;
+      }
       setChatError(error.message);
       // roll back the optimistic user message
       setMessages((prev) => prev.slice(0, -1));
@@ -188,20 +197,36 @@ function App() {
             }
           }}
         />
-        <Button
-          className="mt-5 w-full"
-          variant="outline"
-          type="submit"
-          disabled={isPending}
-        >
-          {isPending ? (
-            <Spinner />
-          ) : (
-            <>
-              Send <Kbd>⌘ + Enter</Kbd>
-            </>
-          )}
-        </Button>
+        <div className="mt-5 flex gap-2">
+          <Button
+            className="flex-1 hover:cursor-pointer"
+            variant="outline"
+            type="submit"
+            disabled={isPending}
+          >
+            {isPending ? (
+              <Spinner />
+            ) : (
+              <>
+                Send <Kbd>⌘ + Enter</Kbd>
+              </>
+            )}
+          </Button>
+          <Button
+            className="hover:cursor-pointer"
+            type="button"
+            variant="outline"
+            disabled={messages.length === 0}
+            onClick={() => {
+              if (isPending) ignorePendingRef.current = true;
+              setMessages([]);
+              setConversationId(undefined);
+              setTokenUsage(undefined);
+            }}
+          >
+            New Chat
+          </Button>
+        </div>
         {chatError && (
           <p className="text-xs text-destructive mt-2 ml-1">{chatError}</p>
         )}

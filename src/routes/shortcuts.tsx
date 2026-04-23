@@ -3,7 +3,9 @@ import { Kbd } from "#/components/ui/kbd";
 import { ArrowLeft } from "lucide-react";
 import { useEffect } from "react";
 
-export const Route = createFileRoute("/shortcuts")({ component: ShortcutsPage });
+export const Route = createFileRoute("/shortcuts")({
+  component: ShortcutsPage,
+});
 
 interface ShortcutRowProps {
   title: string;
@@ -13,7 +15,7 @@ interface ShortcutRowProps {
 
 function ShortcutRow({ title, description, keys }: ShortcutRowProps) {
   return (
-    <div className="flex items-center justify-between px-4 py-3.5 [&:not(:last-child)]:border-b border-border">
+    <div className="flex items-center justify-between px-4 py-3.5 not-last:border-b border-border">
       <div>
         <p className="font-semibold text-sm">{title}</p>
         <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
