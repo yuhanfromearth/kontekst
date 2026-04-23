@@ -11,6 +11,7 @@ export interface LlmChatResult {
 
 export interface ChatResponseDto {
   conversationId: string;
+  title?: string;
   content: string;
   usage?: TokenUsage;
 }

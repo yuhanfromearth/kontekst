@@ -49,6 +49,24 @@ export class LlmService {
     };
   }
 
+  async generateTitle(userMessage: string, model: string): Promise<string> {
+    const result = await this.client.chat.send({
+      chatRequest: {
+        model,
+        messages: [
+          {
+            role: 'system',
+            content:
+              'Generate a concise 3-6 word title for a conversation that begins with the given user message. Respond with only the title — no quotes, no trailing punctuation.',
+          },
+          { role: 'user', content: userMessage },
+        ],
+      },
+    });
+
+    return (result.choices[0].message.content as string).trim();
+  }
+
   async getModels(search?: string, limit = 10): Promise<ModelDto[]> {
     const response = await fetch(OPENROUTER_MODELS_URL, {
       headers: { Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}` },

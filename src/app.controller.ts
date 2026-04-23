@@ -20,6 +20,10 @@ import { DeleteShortcutDto, SaveShortcutDto } from './dtos/shortcut.dto.js';
 import { ChatDto } from './dtos/chat.dto.js';
 import { ConversationService } from './conversation/conversation.service.js';
 import type { ChatResponseDto } from './dtos/chat-response.dto.js';
+import type {
+  ConversationDto,
+  ConversationSummary,
+} from './dtos/conversation.dto.js';
 import type { KontekstDto } from './dtos/kontekst.dto.js';
 import type { Shortcuts } from './kontekst/interfaces/shortcuts.type.js';
 import type { ModelDto } from './dtos/model.dto.js';
@@ -42,6 +46,22 @@ export class AppController {
       message,
       model,
     );
+  }
+
+  @Get('conversations')
+  listConversations(): ConversationSummary[] {
+    return this.conversationService.listConversations();
+  }
+
+  @Get('conversation')
+  getConversation(@Query('id') id: string): ConversationDto {
+    return this.conversationService.getConversation(id);
+  }
+
+  @Delete('conversation')
+  @HttpCode(204)
+  deleteConversation(@Query('id') id: string): void {
+    this.conversationService.deleteConversation(id);
   }
 
   @Get('models/default')

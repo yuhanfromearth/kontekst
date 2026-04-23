@@ -1,6 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import fs from 'fs';
 import type { ChatResponseDto } from '../dtos/chat-response.dto.js';
+import type {
+  ConversationDto,
+  ConversationSummary,
+} from '../dtos/conversation.dto.js';
 import { LlmService } from '../llm/llm.service.js';
 import { ConversationEntry } from './interfaces/conversation.interface.js';
 import { ConversationStore } from './interfaces/conversation-store.type.js';
@@ -27,7 +31,7 @@ export class ConversationService {
       };
     }
 
-    const conversation = this.getConversation(store, id);
+    const conversation = this.findEntry(store, id);
     conversation.messages.push({ role: 'user', content: message });
 
     const res = await this.llmService.chat(
@@ -37,9 +41,53 @@ export class ConversationService {
     );
 
     conversation.messages.push({ role: 'assistant', content: res.content });
+
+    if (!conversation.title) {
+      conversation.title = await this.llmService.generateTitle(
+        message,
+        conversation.model,
+      );
+    }
+
     this.writeStore(store);
 
-    return { conversationId: id, content: res.content, usage: res.usage };
+    return {
+      conversationId: id,
+      title: conversation.title,
+      content: res.content,
+      usage: res.usage,
+    };
+  }
+
+  listConversations(): ConversationSummary[] {
+    const store = this.readStore();
+    return Object.entries(store).map(([id, entry]) => ({
+      id,
+      title: entry.title,
+      kontekstName: entry.kontekstName,
+      model: entry.model,
+    }));
+  }
+
+  getConversation(id: string): ConversationDto {
+    const store = this.readStore();
+    const entry = this.findEntry(store, id);
+    return {
+      id,
+      title: entry.title,
+      kontekstName: entry.kontekstName,
+      model: entry.model,
+      messages: entry.messages,
+    };
+  }
+
+  deleteConversation(id: string): void {
+    const store = this.readStore();
+    if (!(id in store)) {
+      throw new NotFoundException(`Conversation '${id}' not found`);
+    }
+    delete store[id];
+    this.writeStore(store);
   }
 
   private storePath(): string {
@@ -60,10 +108,7 @@ export class ConversationService {
     fs.writeFileSync(this.storePath(), JSON.stringify(store, null, 2));
   }
 
-  private getConversation(
-    store: ConversationStore,
-    id: string,
-  ): ConversationEntry {
+  private findEntry(store: ConversationStore, id: string): ConversationEntry {
     const conversation = store[id];
     if (!conversation) {
       throw new NotFoundException(`Conversation '${id}' not found`);

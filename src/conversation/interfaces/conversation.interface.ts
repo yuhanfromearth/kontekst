@@ -4,4 +4,5 @@ export interface ConversationEntry {
   messages: Message[];
   kontekstName: string;
   model: string;
+  title?: string;
 }
