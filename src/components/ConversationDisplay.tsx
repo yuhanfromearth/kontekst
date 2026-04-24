@@ -12,10 +12,15 @@ import type {
   ConversationSummary,
 } from "#/types/conversation";
 
-export default function ConversationDisplay() {
+export default function ConversationDisplay({
+  kontekstList,
+}: {
+  kontekstList: string[];
+}) {
   const { loadConversation, conversationId } = useConversation();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const kontekstSet = new Set(kontekstList);
 
   const { data: conversations = [], isLoading } = useQuery<
     ConversationSummary[]
@@ -83,7 +88,17 @@ export default function ConversationDisplay() {
                     {c.title?.trim() || "Untitled"}
                   </div>
                   <div className="text-xs text-muted-foreground flex gap-2 mt-0.5 truncate">
-                    <span className="font-mono">{c.kontekstName}</span>
+                    {c.kontekstName && !kontekstSet.has(c.kontekstName) ? (
+                      <span
+                        className="font-mono text-destructive inline-flex items-center gap-0.5"
+                        title="Kontekst no longer exists"
+                      >
+                        {c.kontekstName}
+                        <X className="size-3" />
+                      </span>
+                    ) : (
+                      <span className="font-mono">{c.kontekstName}</span>
+                    )}
                     <span className="truncate">{c.model}</span>
                   </div>
                 </button>

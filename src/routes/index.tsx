@@ -134,6 +134,18 @@ function App() {
     queryFn: () => fetch("/api/shortcuts").then((res) => res.json()),
   });
 
+  const { data: kontekstList = [], isError: kontekstError } = useQuery<
+    string[]
+  >({
+    queryKey: ["konteksts"],
+    queryFn: async () => {
+      const res = await fetch("/api/konteksts");
+      if (!res.ok) throw new Error("Failed to fetch konteksts");
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    },
+  });
+
   const submit = () => {
     if (!input) return;
     const userMessage = input;
@@ -159,15 +171,18 @@ function App() {
       <div className="flex items-center justify-between mb-8">
         <KontekstLogo className="ml-2" />
         <div className="flex items-center gap-1">
-          <ConversationDisplay />
+          <ConversationDisplay kontekstList={kontekstList} />
           <ThemeToggle />
           <button
             type="button"
             onClick={() => navigate({ to: "/shortcuts" })}
-            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
             title="Keyboard shortcuts"
+            aria-label="Keyboard shortcuts"
           >
-            ?
+            <span className="size-4 flex items-center justify-center text-sm leading-none">
+              ?
+            </span>
           </button>
         </div>
       </div>
@@ -242,6 +257,8 @@ function App() {
       </form>
 
       <KontekstDisplay
+        kontekstList={kontekstList}
+        isError={kontekstError}
         selected={selectedKontekst}
         onSelect={setSelectedKontekst}
         shortcuts={shortcuts}

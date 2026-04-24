@@ -1,19 +1,14 @@
 import { Badge } from "./ui/badge";
 import { Kbd } from "./ui/kbd";
-import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 
 interface KontekstDisplayProps {
+  kontekstList: string[];
+  isError?: boolean;
   selected?: string;
   onSelect: (kontekst: string | undefined) => void;
   shortcuts?: Record<string, string>;
-}
-
-async function fetchKonteksts(): Promise<string[]> {
-  const res = await fetch("/api/konteksts");
-  if (!res.ok) throw new Error("Failed to fetch konteksts");
-  return res.json();
 }
 
 const MODIFIER_KEYS = new Set(["meta", "control", "shift", "alt"]);
@@ -44,6 +39,8 @@ function ShortcutDisplay({ shortcut }: { shortcut: string }) {
 }
 
 export default function KontekstDisplay({
+  kontekstList,
+  isError,
   selected,
   onSelect,
   shortcuts,
@@ -51,10 +48,6 @@ export default function KontekstDisplay({
   const navigate = useNavigate();
   const [isCmdHeld, setIsCmdHeld] = useState(false);
   const [hoveredKontekst, setHoveredKontekst] = useState<string | null>(null);
-  const { data: kontekstList = [], isError } = useQuery({
-    queryKey: ["konteksts"],
-    queryFn: fetchKonteksts,
-  });
 
   // Auto-select the default kontekst (first in list) only when there is no
   // existing selection — i.e. on first load. After that, the user's explicit
