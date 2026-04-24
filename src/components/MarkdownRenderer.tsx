@@ -10,7 +10,7 @@ export default function MarkdownRenderer({
   markdownString: string;
 }) {
   return (
-    <div className="prose max-w-none text-justify w-full [&_p]:leading-6 [&_p]:my-4">
+    <div className="prose dark:prose-invert max-w-none text-justify w-full [&_p]:leading-6 [&_p]:my-4">
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}
@@ -21,7 +21,7 @@ export default function MarkdownRenderer({
             if (isInline) {
               return (
                 <code
-                  className="before:content-none after:content-none text-slate-900 bg-neutral-100 border border-neutral-200 rounded px-1.5 py-0.5 font-normal text-sm"
+                  className="before:content-none after:content-none text-foreground bg-muted border border-border rounded px-1.5 py-0.5 font-normal text-sm"
                   {...props}
                 >
                   {children}

@@ -1,7 +1,9 @@
 import KontekstDisplay from "#/components/KontekstDisplay";
+import KontekstLogo from "#/components/KontekstLogo";
 import ConversationHistory from "#/components/ConversationHistory";
 import ConversationDisplay from "#/components/ConversationDisplay";
 import ModelSelector from "#/components/ModelSelector";
+import ThemeToggle from "#/components/ThemeToggle";
 import { Button } from "#/components/ui/button";
 import { Kbd } from "#/components/ui/kbd";
 import { Spinner } from "#/components/ui/spinner";
@@ -155,9 +157,10 @@ function App() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden px-1">
       <div className="flex items-center justify-between mb-8">
-        <h2 className="font-bold text-2xl ml-2">kontekst.</h2>
+        <KontekstLogo className="ml-2" />
         <div className="flex items-center gap-1">
           <ConversationDisplay />
+          <ThemeToggle />
           <button
             type="button"
             onClick={() => navigate({ to: "/shortcuts" })}
