@@ -26,7 +26,9 @@ export class LlmService {
     const result = await this.client.chat.send({
       chatRequest: {
         model,
-        messages: [{ role: 'system', content: systemPrompt }, ...messages],
+        messages: systemPrompt
+          ? [{ role: 'system', content: systemPrompt }, ...messages]
+          : messages,
       },
     });
 
@@ -51,16 +53,17 @@ export class LlmService {
     userMessage: string,
     model: string,
   ): Promise<string> {
+    const userPrompt = {
+      role: 'user' as const,
+      content: `Generate a concise 3-6 word title for a new conversation that begins with this message:\n\n"${userMessage}"\n\nRespond with ONLY the title — no quotes, no trailing punctuation, no explanation.`,
+    };
+
     const result = await this.client.chat.send({
       chatRequest: {
         model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          {
-            role: 'user',
-            content: `Generate a concise 3-6 word title for a new conversation that begins with this message:\n\n"${userMessage}"\n\nRespond with ONLY the title — no quotes, no trailing punctuation, no explanation.`,
-          },
-        ],
+        messages: systemPrompt
+          ? [{ role: 'system', content: systemPrompt }, userPrompt]
+          : [userPrompt],
       },
     });
 

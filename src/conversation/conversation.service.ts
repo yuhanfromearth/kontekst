@@ -30,7 +30,7 @@ export class ConversationService {
       id = crypto.randomUUID();
       store[id] = {
         messages: [],
-        kontekstName: kontekstName!,
+        kontekstName,
         model,
       };
     }
@@ -38,9 +38,9 @@ export class ConversationService {
     const conversation = this.findEntry(store, id);
     conversation.messages.push({ role: 'user', content: message });
 
-    const systemPrompt = this.kontekstService.getKontekst(
-      conversation.kontekstName,
-    );
+    const systemPrompt = conversation.kontekstName
+      ? this.kontekstService.getKontekst(conversation.kontekstName)
+      : '';
 
     const [res, title] = await Promise.all([
       this.llmService.chat(

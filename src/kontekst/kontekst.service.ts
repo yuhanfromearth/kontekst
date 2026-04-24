@@ -28,13 +28,17 @@ export class KontekstService {
     const store = this.readStore();
     const names = Object.keys(store);
 
-    if (!names.includes('default')) {
-      throw new HttpException('Default kontekst does not exist', 500);
+    if (names.length === 0) {
+      return [];
     }
 
-    const defaultName =
-      Object.entries(store).find(([, entry]) => entry.isDefault)?.[0] ??
-      'default';
+    const defaultName = Object.entries(store).find(
+      ([, entry]) => entry.isDefault,
+    )?.[0];
+
+    if (!defaultName) {
+      return names.sort();
+    }
 
     return [
       defaultName,
@@ -63,22 +67,8 @@ export class KontekstService {
 
   getKontekst(name: string): string {
     const store = this.readStore();
-
-    if (!store['default']) {
-      throw new HttpException('Default kontekst does not exist', 500);
-    }
-
-    const normalizedName = name.trim();
-    const entry = store[normalizedName];
-
-    if (!entry) {
-      throw new HttpException(
-        `Kontekst with name '${name}' does not exist`,
-        404,
-      );
-    }
-
-    return entry.content;
+    const entry = store[name.trim()];
+    return entry?.content ?? '';
   }
 
   findKontekst(name: string): KontekstDto {

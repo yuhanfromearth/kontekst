@@ -2,7 +2,7 @@ import { Message } from 'src/dtos/chat.dto.js';
 
 export interface ConversationEntry {
   messages: Message[];
-  kontekstName: string;
+  kontekstName?: string;
   model: string;
   title?: string;
 }
