@@ -104,7 +104,7 @@ function App() {
     let assistantStarted = false;
     let buffer = "";
     let animatorTimer: ReturnType<typeof setTimeout> | null = null;
-    let drainResolve: (() => void) | null = null;
+    let drainResolve: () => void = () => {};
     const drainPromise = new Promise<void>((res) => {
       drainResolve = res;
     });
@@ -128,7 +128,7 @@ function App() {
     const tick = () => {
       animatorTimer = null;
       if (buffer.length === 0) {
-        drainResolve?.();
+        drainResolve();
         return;
       }
 
@@ -138,7 +138,7 @@ function App() {
       flushPiece(piece);
 
       if (buffer.length === 0) {
-        drainResolve?.();
+        drainResolve();
         return;
       }
       // Adaptive cadence: target ~400ms drain regardless of backlog.
@@ -159,7 +159,7 @@ function App() {
     const rollback = () => {
       stopAnimator();
       buffer = "";
-      drainResolve?.();
+      drainResolve();
       setMessages((prev) =>
         assistantStarted ? prev.slice(0, -2) : prev.slice(0, -1),
       );
@@ -229,7 +229,7 @@ function App() {
       if (buffer.length > 0 || animatorTimer !== null) {
         await drainPromise;
       } else {
-        drainResolve?.();
+        drainResolve();
       }
     } catch (err) {
       if (controller.signal.aborted) return;
