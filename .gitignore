@@ -63,7 +63,7 @@ pids
 # Diagnostic reports
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
-# Per-developer files
+# Other
 CLAUDE.md
 .mcp.json
 todos.json

@@ -1,4 +1,4 @@
-import type { Message } from "#/types/message";
+import type { Message } from "@kontekst/dtos";
 import MarkdownRenderer from "#/components/MarkdownRenderer";
 import { useEffect, useRef, useState } from "react";
 

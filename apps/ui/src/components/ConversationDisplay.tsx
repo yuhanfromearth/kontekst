@@ -7,10 +7,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "#/components/ui/popover";
-import type {
-  ConversationDto,
-  ConversationSummary,
-} from "#/types/conversation";
+import type { ConversationDto, ConversationSummary } from "@kontekst/dtos";
 
 export default function ConversationDisplay({
   kontekstList,

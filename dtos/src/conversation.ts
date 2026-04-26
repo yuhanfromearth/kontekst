@@ -1,4 +1,4 @@
-import { Message } from './chat.dto.js';
+import type { Message } from './chat.js';
 
 export interface ConversationSummary {
   id: string;

@@ -1,4 +1,4 @@
-import type { ModelDto } from "#/types/model";
+import type { ModelDto } from "@kontekst/dtos";
 import { formatTokens } from "#/lib/tokens";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";

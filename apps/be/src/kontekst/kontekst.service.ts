@@ -1,7 +1,6 @@
 import { HttpException, Injectable } from '@nestjs/common';
 import fs from 'fs';
-import { KontekstDto } from '../dtos/kontekst.dto.js';
-import { Shortcuts } from './interfaces/shortcuts.type.js';
+import type { KontekstDto, Shortcuts } from '@kontekst/dtos';
 import { KontekstStore } from './interfaces/kontekst.type.js';
 
 @Injectable()

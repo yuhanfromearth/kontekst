@@ -21,7 +21,7 @@ import {
   shortcutValidationError,
 } from "#/lib/shortcut";
 import { useIsMac } from "#/lib/platform";
-import type { KontekstDto } from "#/types/kontekst";
+import type { KontekstDto } from "@kontekst/dtos";
 
 export const Route = createFileRoute("/kontekst/$name")({
   component: KontekstEditPage,

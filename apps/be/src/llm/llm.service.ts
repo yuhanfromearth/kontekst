@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { OpenRouter } from '@openrouter/sdk';
-import { Message } from '../dtos/chat.dto.js';
-import { LlmChatResult } from '../dtos/chat-response.dto.js';
-import { ModelDto, OpenRouterModelsResponse } from '../dtos/model.dto.js';
+import type { Message, ModelDto } from '@kontekst/dtos';
+import { LlmChatResult } from './interfaces/llm-result.interface.js';
+import { OpenRouterModelsResponse } from './interfaces/openrouter.interface.js';
 
 const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models';
 const INITIAL_DEFAULT_MODEL = 'google/gemini-3-flash-preview';

@@ -1,4 +1,4 @@
-import { Message } from 'src/dtos/chat.dto.js';
+import type { Message } from '@kontekst/dtos';
 
 export interface ConversationEntry {
   messages: Message[];

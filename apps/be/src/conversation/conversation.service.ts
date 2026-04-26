@@ -1,10 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import fs from 'fs';
-import type { ChatResponseDto } from '../dtos/chat-response.dto.js';
 import type {
+  ChatResponseDto,
   ConversationDto,
   ConversationSummary,
-} from '../dtos/conversation.dto.js';
+} from '@kontekst/dtos';
 import { KontekstService } from '../kontekst/kontekst.service.js';
 import { LlmService } from '../llm/llm.service.js';
 import { ConversationEntry } from './interfaces/conversation.interface.js';

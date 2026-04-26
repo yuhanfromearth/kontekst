@@ -3,6 +3,15 @@
   "private": true,
   "version": "0.0.0",
   "workspaces": [
-    "apps/*"
-  ]
+    "apps/*",
+    "dtos"
+  ],
+  "scripts": {
+    "build:dtos": "npm run build --workspace=dtos",
+    "build": "npm run build:dtos && npm run build --workspace=apps/be && npm run build --workspace=apps/ui",
+    "start": "npm run build:dtos && concurrently -n dtos,be,ui -c yellow,blue,magenta \"npm run dev --workspace=dtos\" \"npm run start:dev --workspace=apps/be\" \"npm run dev --workspace=apps/ui\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
 }

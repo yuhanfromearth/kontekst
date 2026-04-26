@@ -19,14 +19,14 @@ import {
 import { DeleteShortcutDto, SaveShortcutDto } from './dtos/shortcut.dto.js';
 import { ChatDto } from './dtos/chat.dto.js';
 import { ConversationService } from './conversation/conversation.service.js';
-import type { ChatResponseDto } from './dtos/chat-response.dto.js';
 import type {
+  ChatResponseDto,
   ConversationDto,
   ConversationSummary,
-} from './dtos/conversation.dto.js';
-import type { KontekstDto } from './dtos/kontekst.dto.js';
-import type { Shortcuts } from './kontekst/interfaces/shortcuts.type.js';
-import type { ModelDto } from './dtos/model.dto.js';
+  KontekstDto,
+  ModelDto,
+  Shortcuts,
+} from '@kontekst/dtos';
 import { SetDefaultModelDto } from './dtos/model.dto.js';
 
 @Controller()

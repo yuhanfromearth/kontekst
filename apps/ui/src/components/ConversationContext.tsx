@@ -1,7 +1,10 @@
 import { createContext, useContext, useState } from "react";
-import type { Message, TokenUsage } from "#/types/message";
-import type { ModelDto } from "#/types/model";
-import type { ConversationDto } from "#/types/conversation";
+import type {
+  ConversationDto,
+  Message,
+  ModelDto,
+  TokenUsage,
+} from "@kontekst/dtos";
 
 interface ConversationState {
   messages: Message[];
