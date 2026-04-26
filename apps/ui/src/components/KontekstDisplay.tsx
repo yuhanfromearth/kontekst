@@ -10,6 +10,7 @@ interface KontekstDisplayProps {
   selected?: string;
   onSelect: (kontekst: string | undefined) => void;
   shortcuts?: Record<string, string>;
+  defaultKontekst?: string | null;
 }
 
 const MODIFIER_KEYS = new Set(["meta", "control", "shift", "alt"]);
@@ -49,21 +50,20 @@ export default function KontekstDisplay({
   selected,
   onSelect,
   shortcuts,
+  defaultKontekst,
 }: KontekstDisplayProps) {
   const navigate = useNavigate();
   const isMac = useIsMac();
   const [isModHeld, setIsModHeld] = useState(false);
   const [hoveredKontekst, setHoveredKontekst] = useState<string | null>(null);
 
-  // Auto-select the default kontekst (first in list) only when there is no
-  // existing selection — i.e. on first load. After that, the user's explicit
-  // selection takes precedence and should not be overwritten on refetch.
-  const firstKontekst = kontekstList[0];
+  // Auto-select the default kontekst only when there is no existing selection —
+  // i.e. on first load. If no default is configured, leave selection empty.
   useEffect(() => {
-    if (firstKontekst !== undefined && selected === undefined) {
-      onSelect(firstKontekst);
+    if (defaultKontekst && selected === undefined) {
+      onSelect(defaultKontekst);
     }
-  }, [firstKontekst]);
+  }, [defaultKontekst]);
 
   useEffect(() => {
     const modKeyName = isMac ? "Meta" : "Control";
@@ -166,6 +166,8 @@ export default function KontekstDisplay({
             if (modClick) {
               e.preventDefault();
               navigate({ to: "/kontekst/$name", params: { name: kontekst } });
+            } else if (selected === kontekst) {
+              onSelect(undefined);
             } else {
               onSelect(kontekst);
             }

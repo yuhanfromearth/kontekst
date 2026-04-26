@@ -41,11 +41,15 @@ function KontekstEditPage() {
       ),
   });
 
-  const { data: kontekstList = [] } = useQuery<string[]>({
-    queryKey: ["konteksts"],
-    queryFn: () => fetch("/api/konteksts").then((res) => res.json()),
+  const { data: savedDefault } = useQuery<string | null>({
+    queryKey: ["konteksts", "default"],
+    queryFn: async () => {
+      const res = await fetch("/api/konteksts/default");
+      if (!res.ok) throw new Error("Failed to fetch default kontekst");
+      const data: { name: string | null } = await res.json();
+      return data.name;
+    },
   });
-  const savedDefault = kontekstList[0];
 
   const [editableName, setEditableName] = useState(name);
   const [kontekst, setKontekst] = useState("");
@@ -92,6 +96,8 @@ function KontekstEditPage() {
       setIsDefault(savedDefault === name);
     }
   }, [savedDefault, name]);
+
+  const wasDefault = savedDefault === name;
 
   const isNew = data?.kontekst === undefined;
 
@@ -155,6 +161,14 @@ function KontekstEditPage() {
           const body = await defaultRes.json().catch(() => null);
           throw new Error(body?.message ?? "Failed to set as default");
         }
+      } else if (wasDefault) {
+        const defaultRes = await fetch("/api/konteksts/default", {
+          method: "DELETE",
+        });
+        if (!defaultRes.ok) {
+          const body = await defaultRes.json().catch(() => null);
+          throw new Error(body?.message ?? "Failed to clear default");
+        }
       }
     },
 
@@ -163,6 +177,7 @@ function KontekstEditPage() {
       // immediately refetches it. Without this, the cached (old) list would
       // be used after setting a new default and the wrong kontekst would appear selected.
       queryClient.invalidateQueries({ queryKey: ["konteksts"] });
+      queryClient.invalidateQueries({ queryKey: ["konteksts", "default"] });
       navigate({ to: "/" });
     },
     onError: (error) => {
@@ -261,7 +276,7 @@ function KontekstEditPage() {
               <p className="text-sm text-muted-foreground">{shortcutHint()}</p>
             )}
           </div>
-          {!isNew && savedDefault !== name && (
+          {!isNew && (
             <div className="flex items-center gap-2">
               <Checkbox
                 id="isDefault"

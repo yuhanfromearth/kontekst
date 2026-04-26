@@ -259,6 +259,16 @@ function App() {
     },
   });
 
+  const { data: defaultKontekst } = useQuery<string | null>({
+    queryKey: ["konteksts", "default"],
+    queryFn: async () => {
+      const res = await fetch("/api/konteksts/default");
+      if (!res.ok) throw new Error("Failed to fetch default kontekst");
+      const data: { name: string | null } = await res.json();
+      return data.name;
+    },
+  });
+
   const submit = () => {
     if (!input) return;
     const userMessage = input;
@@ -372,6 +382,7 @@ function App() {
         selected={selectedKontekst}
         onSelect={setSelectedKontekst}
         shortcuts={shortcuts}
+        defaultKontekst={defaultKontekst}
       />
 
       {messages.length > 0 && (

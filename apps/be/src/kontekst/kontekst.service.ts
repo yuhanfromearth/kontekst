@@ -64,6 +64,20 @@ export class KontekstService {
     this.writeStore(store);
   }
 
+  getDefaultKontekst(): string | null {
+    const store = this.readStore();
+    const entry = Object.entries(store).find(([, e]) => e.isDefault);
+    return entry?.[0] ?? null;
+  }
+
+  clearDefaultKontekst(): void {
+    const store = this.readStore();
+    for (const entry of Object.values(store)) {
+      delete entry.isDefault;
+    }
+    this.writeStore(store);
+  }
+
   getKontekst(name: string): string {
     const store = this.readStore();
     const entry = store[name.trim()];

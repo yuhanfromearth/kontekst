@@ -157,6 +157,17 @@ export class AppController {
     this.kontekstService.setDefaultKontekst(body.name);
   }
 
+  @Get('konteksts/default')
+  getDefaultKontekst(): { name: string | null } {
+    return { name: this.kontekstService.getDefaultKontekst() };
+  }
+
+  @Delete('konteksts/default')
+  @HttpCode(204)
+  clearDefaultKontekst(): void {
+    this.kontekstService.clearDefaultKontekst();
+  }
+
   @Post('shortcuts')
   setShortcut(@Body() body: SaveShortcutDto): void {
     const { kontekstName, shortcut } = body;
