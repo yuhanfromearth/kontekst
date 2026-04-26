@@ -8,7 +8,10 @@ import {
   Patch,
   Post,
   Query,
+  Req,
+  Res,
 } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { LlmService } from './llm/llm.service.js';
 import { KontekstService } from './kontekst/kontekst.service.js';
 import {
@@ -20,12 +23,12 @@ import { DeleteShortcutDto, SaveShortcutDto } from './dtos/shortcut.dto.js';
 import { ChatDto } from './dtos/chat.dto.js';
 import { ConversationService } from './conversation/conversation.service.js';
 import type {
-  ChatResponseDto,
   ConversationDto,
   ConversationSummary,
   KontekstDto,
   ModelDto,
   Shortcuts,
+  StreamEvent,
 } from '@kontekst/dtos';
 import { SetDefaultModelDto } from './dtos/model.dto.js';
 
@@ -38,14 +41,46 @@ export class AppController {
   ) {}
 
   @Post('chat')
-  async chat(@Body() body: ChatDto): Promise<ChatResponseDto> {
+  async chat(
+    @Body() body: ChatDto,
+    @Req() req: Request,
+    @Res() res: Response,
+  ): Promise<void> {
     const { conversationId, kontekstName, message, model } = body;
-    return this.conversationService.chat(
-      conversationId,
-      kontekstName,
-      message,
-      model,
-    );
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
+
+    const controller = new AbortController();
+    req.on('close', () => controller.abort());
+
+    const write = (event: StreamEvent) => {
+      res.write(`event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`);
+    };
+
+    try {
+      for await (const evt of this.conversationService.chatStream(
+        conversationId,
+        kontekstName,
+        message,
+        model,
+        controller.signal,
+      )) {
+        if (controller.signal.aborted) break;
+        write(evt);
+      }
+    } catch (err) {
+      if (!controller.signal.aborted) {
+        const messageText =
+          err instanceof Error ? err.message : 'Stream failed';
+        write({ type: 'error', message: messageText });
+      }
+    } finally {
+      res.end();
+    }
   }
 
   @Get('conversations')

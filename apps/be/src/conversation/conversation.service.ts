@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import fs from 'fs';
 import type {
-  ChatResponseDto,
   ConversationDto,
   ConversationSummary,
+  StreamEvent,
+  TokenUsage,
 } from '@kontekst/dtos';
 import { KontekstService } from '../kontekst/kontekst.service.js';
 import { LlmService } from '../llm/llm.service.js';
@@ -17,57 +18,94 @@ export class ConversationService {
     private readonly kontekstService: KontekstService,
   ) {}
 
-  async chat(
+  async *chatStream(
     conversationId: string | undefined,
     kontekstName: string | undefined,
     message: string,
     model: string,
-  ): Promise<ChatResponseDto> {
+    signal: AbortSignal,
+  ): AsyncGenerator<StreamEvent> {
     const store = this.readStore();
 
-    let id = conversationId;
-    if (!id) {
-      id = crypto.randomUUID();
-      store[id] = {
-        messages: [],
-        kontekstName,
-        model,
-      };
+    const isNew = !conversationId;
+    const id = conversationId ?? crypto.randomUUID();
+    if (isNew) {
+      store[id] = { messages: [], kontekstName, model };
     }
 
     const conversation = this.findEntry(store, id);
-    conversation.messages.push({ role: 'user', content: message });
-
     const systemPrompt = conversation.kontekstName
       ? this.kontekstService.getKontekst(conversation.kontekstName)
       : '';
 
-    const [res, title] = await Promise.all([
-      this.llmService.chat(
-        conversation.messages,
+    const turnMessages = [
+      ...conversation.messages,
+      { role: 'user' as const, content: message },
+    ];
+
+    yield { type: 'meta', conversationId: id };
+
+    const titlePromise = conversation.title
+      ? null
+      : this.llmService
+          .generateTitle(systemPrompt, message, conversation.model, signal)
+          .then(
+            (title) => ({ ok: true, title }) as const,
+            () => ({ ok: false }) as const,
+          );
+
+    let titleEmitted = conversation.title !== undefined;
+    let resolvedTitle: string | undefined;
+    if (titlePromise) {
+      void titlePromise.then((res) => {
+        if (res.ok) resolvedTitle = res.title;
+      });
+    }
+
+    let accumulated = '';
+    let usage: TokenUsage | undefined;
+
+    try {
+      for await (const evt of this.llmService.chatStream(
+        turnMessages,
         systemPrompt,
         conversation.model,
-      ),
-      conversation.title
-        ? Promise.resolve(conversation.title)
-        : this.llmService.generateTitle(
-            systemPrompt,
-            message,
-            conversation.model,
-          ),
-    ]);
+        signal,
+      )) {
+        if (evt.type === 'delta') {
+          accumulated += evt.content;
+          yield { type: 'delta', content: evt.content };
+          if (!titleEmitted && resolvedTitle) {
+            titleEmitted = true;
+            yield { type: 'title', title: resolvedTitle };
+          }
+        } else if (evt.type === 'usage') {
+          usage = evt.usage;
+        }
+      }
 
-    conversation.messages.push({ role: 'assistant', content: res.content });
-    conversation.title = title;
+      if (!titleEmitted) {
+        const res = await titlePromise;
+        if (res?.ok) {
+          resolvedTitle = res.title;
+          titleEmitted = true;
+          yield { type: 'title', title: res.title };
+        }
+      }
 
-    this.writeStore(store);
+      if (usage) yield { type: 'usage', usage };
 
-    return {
-      conversationId: id,
-      title: conversation.title,
-      content: res.content,
-      usage: res.usage,
-    };
+      conversation.messages.push({ role: 'user', content: message });
+      conversation.messages.push({ role: 'assistant', content: accumulated });
+      if (resolvedTitle) conversation.title = resolvedTitle;
+      this.writeStore(store);
+
+      yield { type: 'done' };
+    } catch (err) {
+      if (signal.aborted) return;
+      const messageText = err instanceof Error ? err.message : 'Stream failed';
+      yield { type: 'error', message: messageText };
+    }
   }
 
   listConversations(): ConversationSummary[] {

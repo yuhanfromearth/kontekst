@@ -16,15 +16,21 @@ export interface Message {
   content: string;
 }
 
-export interface TokenUsage {
-  promptTokens: number;
-  completionTokens: number;
-  totalTokens: number;
-}
+export const TokenUsageSchema = z.object({
+  promptTokens: z.number(),
+  completionTokens: z.number(),
+  totalTokens: z.number(),
+});
 
-export interface ChatResponseDto {
-  conversationId: string;
-  title?: string;
-  content: string;
-  usage?: TokenUsage;
-}
+export type TokenUsage = z.infer<typeof TokenUsageSchema>;
+
+export const StreamEventSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('meta'), conversationId: z.string() }),
+  z.object({ type: z.literal('delta'), content: z.string() }),
+  z.object({ type: z.literal('title'), title: z.string() }),
+  z.object({ type: z.literal('usage'), usage: TokenUsageSchema }),
+  z.object({ type: z.literal('done') }),
+  z.object({ type: z.literal('error'), message: z.string() }),
+]);
+
+export type StreamEvent = z.infer<typeof StreamEventSchema>;

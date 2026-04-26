@@ -6,11 +6,12 @@ import ModelSelector from "#/components/ModelSelector";
 import ThemeToggle from "#/components/ThemeToggle";
 import { Button } from "#/components/ui/button";
 import { Kbd } from "#/components/ui/kbd";
-import { Spinner } from "#/components/ui/spinner";
 import { Textarea } from "#/components/ui/textarea";
-import type { ChatResponseDto, ModelDto } from "@kontekst/dtos";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ModelDto, StreamEvent } from "@kontekst/dtos";
+import { StreamEventSchema } from "@kontekst/dtos";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createParser } from "eventsource-parser";
 import { formatTokens } from "#/lib/tokens";
 import { useEffect, useRef, useState } from "react";
 import { useConversation } from "#/components/ConversationContext";
@@ -36,10 +37,25 @@ function App() {
     setSelectedModelDto,
     modelContextLength,
     setModelContextLength,
+    registerStreamCanceller,
   } = useConversation();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const ignorePendingRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
+  const [isStreaming, setIsStreaming] = useState(false);
   const queryClient = useQueryClient();
+
+  const cancelStream = () => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+  };
+
+  useEffect(() => {
+    registerStreamCanceller(cancelStream);
+    return () => {
+      cancelStream();
+      registerStreamCanceller(null);
+    };
+  }, [registerStreamCanceller]);
 
   const { data: defaultModel } = useQuery<ModelDto>({
     queryKey: ["models", "default"],
@@ -75,13 +91,116 @@ function App() {
 
   const [chatError, setChatError] = useState<string | undefined>();
 
-  const { mutate, isPending } = useMutation({
-    mutationFn: async (payload: {
-      userMessage: string;
-      conversationId?: string;
-      kontekstName?: string;
-      model?: string;
-    }) => {
+  const runStream = async (payload: {
+    userMessage: string;
+    conversationId?: string;
+    kontekstName?: string;
+    model?: string;
+  }) => {
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setIsStreaming(true);
+
+    let assistantStarted = false;
+    let buffer = "";
+    let animatorTimer: ReturnType<typeof setTimeout> | null = null;
+    let drainResolve: (() => void) | null = null;
+    const drainPromise = new Promise<void>((res) => {
+      drainResolve = res;
+    });
+
+    const stopAnimator = () => {
+      if (animatorTimer !== null) {
+        clearTimeout(animatorTimer);
+        animatorTimer = null;
+      }
+    };
+
+    const flushPiece = (piece: string) => {
+      setMessages((prev) => {
+        const next = prev.slice();
+        const last = next[next.length - 1];
+        next[next.length - 1] = { ...last, content: last.content + piece };
+        return next;
+      });
+    };
+
+    const tick = () => {
+      animatorTimer = null;
+      if (buffer.length === 0) {
+        drainResolve?.();
+        return;
+      }
+
+      const match = buffer.match(/^\s*\S+\s*/);
+      const piece = match ? match[0] : buffer;
+      buffer = buffer.slice(piece.length);
+      flushPiece(piece);
+
+      if (buffer.length === 0) {
+        drainResolve?.();
+        return;
+      }
+      // Adaptive cadence: target ~400ms drain regardless of backlog.
+      const remainingWords = buffer.split(/\s+/).filter(Boolean).length || 1;
+      const delay = Math.max(10, Math.min(45, 400 / remainingWords));
+      animatorTimer = setTimeout(tick, delay);
+    };
+
+    const enqueue = (delta: string) => {
+      if (!assistantStarted) {
+        assistantStarted = true;
+        setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+      }
+      buffer += delta;
+      if (animatorTimer === null) animatorTimer = setTimeout(tick, 0);
+    };
+
+    const rollback = () => {
+      stopAnimator();
+      buffer = "";
+      drainResolve?.();
+      setMessages((prev) =>
+        assistantStarted ? prev.slice(0, -2) : prev.slice(0, -1),
+      );
+    };
+
+    const handleEvent = (evt: StreamEvent) => {
+      switch (evt.type) {
+        case "meta":
+          setConversationId(evt.conversationId);
+          queryClient.invalidateQueries({ queryKey: ["conversations"] });
+          break;
+        case "delta":
+          enqueue(evt.content);
+          break;
+        case "title":
+          queryClient.invalidateQueries({ queryKey: ["conversations"] });
+          break;
+        case "usage":
+          setTokenUsage(evt.usage);
+          break;
+        case "done":
+          break;
+        case "error":
+          setChatError(evt.message);
+          rollback();
+          break;
+      }
+    };
+
+    const parser = createParser({
+      onEvent: (e) => {
+        try {
+          const parsed = StreamEventSchema.parse(JSON.parse(e.data));
+          handleEvent(parsed);
+        } catch {
+          // ignore malformed frame
+        }
+      },
+    });
+
+    try {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -91,44 +210,37 @@ function App() {
           message: payload.userMessage,
           model: payload.model,
         }),
+        signal: controller.signal,
       });
 
-      if (response.status === 413) {
-        throw new Error(
-          "Conversation is too large to send. Start a new conversation or switch to a model with a larger context window.",
-        );
-      }
-
-      if (!response.ok) {
+      if (!response.ok || !response.body) {
         throw new Error(`Request failed (${response.status})`);
       }
 
-      return response.json() as Promise<ChatResponseDto>;
-    },
-    onSuccess: (response) => {
-      if (ignorePendingRef.current) {
-        ignorePendingRef.current = false;
-        return;
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        parser.feed(decoder.decode(value, { stream: true }));
       }
-      setChatError(undefined);
-      setConversationId(response.conversationId);
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: response.content },
-      ]);
-      setTokenUsage(response.usage);
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
-    },
-    onError: (error: Error) => {
-      if (ignorePendingRef.current) {
-        ignorePendingRef.current = false;
-        return;
+
+      // Wait for the animator to flush the remaining buffer before unblocking input.
+      if (buffer.length > 0 || animatorTimer !== null) {
+        await drainPromise;
+      } else {
+        drainResolve?.();
       }
-      setChatError(error.message);
-      // roll back the optimistic user message
-      setMessages((prev) => prev.slice(0, -1));
-    },
-  });
+    } catch (err) {
+      if (controller.signal.aborted) return;
+      const messageText = err instanceof Error ? err.message : "Stream failed";
+      setChatError(messageText);
+      rollback();
+    } finally {
+      if (abortRef.current === controller) abortRef.current = null;
+      setIsStreaming(false);
+    }
+  };
 
   const { data: shortcuts } = useQuery<Record<string, string>>({
     queryKey: ["shortcuts"],
@@ -152,7 +264,8 @@ function App() {
     const userMessage = input;
     setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
     setInput("");
-    mutate({
+    setChatError(undefined);
+    void runStream({
       userMessage,
       conversationId,
       kontekstName: selectedKontekst,
@@ -228,15 +341,9 @@ function App() {
             className="flex-1 hover:cursor-pointer"
             variant="outline"
             type="submit"
-            disabled={isPending}
+            disabled={isStreaming}
           >
-            {isPending ? (
-              <Spinner />
-            ) : (
-              <>
-                Send <Kbd>{isMac ? "⌘" : "ctrl"} + Enter</Kbd>
-              </>
-            )}
+            Send <Kbd>{isMac ? "⌘" : "ctrl"} + Enter</Kbd>
           </Button>
           <Button
             className="hover:cursor-pointer"
@@ -244,10 +351,11 @@ function App() {
             variant="outline"
             disabled={messages.length === 0}
             onClick={() => {
-              if (isPending) ignorePendingRef.current = true;
+              cancelStream();
               setMessages([]);
               setConversationId(undefined);
               setTokenUsage(undefined);
+              setChatError(undefined);
             }}
           >
             New Chat

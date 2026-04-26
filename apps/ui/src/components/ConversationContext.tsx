@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useCallback, useContext, useRef, useState } from "react";
 import type {
   ConversationDto,
   Message,
@@ -22,6 +22,7 @@ interface ConversationState {
   modelContextLength: number;
   setModelContextLength: (len: number) => void;
   loadConversation: (dto: ConversationDto) => void;
+  registerStreamCanceller: (cancel: (() => void) | null) => void;
 }
 
 const ConversationContext = createContext<ConversationState | undefined>(
@@ -44,8 +45,17 @@ export function ConversationProvider({
     ModelDto | undefined
   >();
   const [modelContextLength, setModelContextLength] = useState(0);
+  const streamCancellerRef = useRef<(() => void) | null>(null);
+
+  const registerStreamCanceller = useCallback(
+    (cancel: (() => void) | null) => {
+      streamCancellerRef.current = cancel;
+    },
+    [],
+  );
 
   const loadConversation = (dto: ConversationDto) => {
+    streamCancellerRef.current?.();
     setMessages(dto.messages);
     setConversationId(dto.id);
     setSelectedKontekst(dto.kontekstName);
@@ -72,6 +82,7 @@ export function ConversationProvider({
         modelContextLength,
         setModelContextLength,
         loadConversation,
+        registerStreamCanceller,
       }}
     >
       {children}

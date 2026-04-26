@@ -1,8 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { OpenRouter } from '@openrouter/sdk';
-import type { Message, ModelDto } from '@kontekst/dtos';
-import { LlmChatResult } from './interfaces/llm-result.interface.js';
+import type { Message, ModelDto, TokenUsage } from '@kontekst/dtos';
 import { OpenRouterModelsResponse } from './interfaces/openrouter.interface.js';
+
+export type LlmStreamEvent =
+  | { type: 'delta'; content: string }
+  | { type: 'usage'; usage: TokenUsage };
 
 const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models';
 const INITIAL_DEFAULT_MODEL = 'google/gemini-3-flash-preview';
@@ -18,54 +21,65 @@ export class LlmService {
     });
   }
 
-  async chat(
+  async *chatStream(
     messages: Message[],
     systemPrompt: string,
     model: string,
-  ): Promise<LlmChatResult> {
-    const result = await this.client.chat.send({
-      chatRequest: {
-        model,
-        messages: systemPrompt
-          ? [{ role: 'system', content: systemPrompt }, ...messages]
-          : messages,
-      },
-    });
-
-    if (result.usage) {
-      return {
-        content: result.choices[0].message.content as string,
-        usage: {
-          completionTokens: result.usage.completionTokens,
-          promptTokens: result.usage.promptTokens,
-          totalTokens: result.usage.totalTokens,
+    signal: AbortSignal,
+  ): AsyncGenerator<LlmStreamEvent> {
+    const stream = await this.client.chat.send(
+      {
+        chatRequest: {
+          model,
+          stream: true,
+          messages: systemPrompt
+            ? [{ role: 'system', content: systemPrompt }, ...messages]
+            : messages,
         },
-      };
-    }
+      },
+      { signal },
+    );
 
-    return {
-      content: result.choices[0].message.content as string,
-    };
+    for await (const chunk of stream) {
+      const delta = chunk.choices?.[0]?.delta?.content;
+      if (delta) {
+        yield { type: 'delta', content: delta };
+      }
+      if (chunk.usage) {
+        yield {
+          type: 'usage',
+          usage: {
+            completionTokens: chunk.usage.completionTokens,
+            promptTokens: chunk.usage.promptTokens,
+            totalTokens: chunk.usage.totalTokens,
+          },
+        };
+      }
+    }
   }
 
   async generateTitle(
     systemPrompt: string,
     userMessage: string,
     model: string,
+    signal?: AbortSignal,
   ): Promise<string> {
     const userPrompt = {
       role: 'user' as const,
       content: `Generate a concise 3-6 word title for a new conversation that begins with this message:\n\n"${userMessage}"\n\nRespond with ONLY the title — no quotes, no trailing punctuation, no explanation.`,
     };
 
-    const result = await this.client.chat.send({
-      chatRequest: {
-        model,
-        messages: systemPrompt
-          ? [{ role: 'system', content: systemPrompt }, userPrompt]
-          : [userPrompt],
+    const result = await this.client.chat.send(
+      {
+        chatRequest: {
+          model,
+          messages: systemPrompt
+            ? [{ role: 'system', content: systemPrompt }, userPrompt]
+            : [userPrompt],
+        },
       },
-    });
+      { signal },
+    );
 
     return (result.choices[0].message.content as string).trim();
   }
