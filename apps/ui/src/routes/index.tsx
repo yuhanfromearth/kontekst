@@ -292,7 +292,7 @@ function App() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden px-1">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-8 mt-2">
         <KontekstLogo className="ml-2" />
         <div className="flex items-center gap-1">
           <ConversationDisplay kontekstList={kontekstList} />
@@ -353,7 +353,7 @@ function App() {
             type="submit"
             disabled={isStreaming}
           >
-            Send <Kbd>{isMac ? "⌘" : "ctrl"} + Enter</Kbd>
+            Send {isMac !== null && <Kbd>{isMac ? "⌘" : "ctrl"} + Enter</Kbd>}
           </Button>
           <Button
             className="hover:cursor-pointer"

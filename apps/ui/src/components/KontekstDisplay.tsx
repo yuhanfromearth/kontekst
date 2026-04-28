@@ -178,7 +178,7 @@ export default function KontekstDisplay({
           className={`gap-1 font-mono ${isModHeld && hoveredKontekst === kontekst ? "cursor-alias opacity-70 ring-2 ring-ring/50" : "cursor-pointer"} ${selected === kontekst ? "transition-opacity" : "transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] active:scale-95"}`}
         >
           {kontekst}
-          {shortcuts?.[kontekst] && selected !== kontekst && (
+          {shortcuts?.[kontekst] && selected !== kontekst && isMac !== null && (
             <ShortcutDisplay shortcut={shortcuts[kontekst]} isMac={isMac} />
           )}
         </Badge>

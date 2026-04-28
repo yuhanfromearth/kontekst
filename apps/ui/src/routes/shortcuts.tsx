@@ -72,7 +72,7 @@ function ShortcutsPage() {
         keyboard shortcuts available throughout kontekst.
       </p>
 
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-6" hidden={isMac === null}>
         <Section title="Prompt">
           <ShortcutRow
             title="Focus prompt"

@@ -13,8 +13,8 @@ export function detectIsMac(): boolean {
   return /mac|iphone|ipad|ipod/i.test(platform);
 }
 
-export function useIsMac(): boolean {
-  const [isMac, setIsMac] = useState(true);
+export function useIsMac(): boolean | null {
+  const [isMac, setIsMac] = useState<boolean | null>(null);
   useEffect(() => setIsMac(detectIsMac()), []);
   return isMac;
 }
