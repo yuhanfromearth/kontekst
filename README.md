@@ -1,6 +1,6 @@
 # kontekst
 
-Monorepo containing both the kontekst frontend and backend.
+OpenRouter wrapper with minimal UI and local Context Management with utility keyboard shortcuts. Chat with any LLM, at API cost, without the noise.
 
 ## Layout
 
@@ -9,25 +9,9 @@ Monorepo containing both the kontekst frontend and backend.
 
 ## Getting started
 
-Install all dependencies once at the repo root (npm workspaces):
+Install all dependencies once at the repo root (npm workspaces) and start the front- and backend services on localhost:
 
 ```sh
 npm install
-```
-
-## Running
-
-```sh
-# Backend (dev mode with watch)
-npm run start:dev --workspace=apps/be
-
-# Frontend (Vite dev server on :3000)
-npm run dev --workspace=apps/ui
-```
-
-## Building
-
-```sh
-npm run build --workspace=apps/be
-npm run build --workspace=apps/ui
+npm run start
 ```
