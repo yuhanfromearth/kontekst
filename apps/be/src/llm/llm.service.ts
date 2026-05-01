@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { OpenRouter } from '@openrouter/sdk';
 import type { KeyInfo, Message, ModelDto, TokenUsage } from '@kontekst/dtos';
 import { OpenRouterModelsResponse } from './interfaces/openrouter.interface.js';
+import { KeyService } from '../key/key.service.js';
 
 export type LlmStreamEvent =
   | { type: 'delta'; content: string }
@@ -24,14 +25,25 @@ const GENERATION_LOOKUP_DELAY_MS = 400;
 
 @Injectable()
 export class LlmService {
-  private readonly client: OpenRouter;
   private readonly logger = new Logger(LlmService.name);
   private defaultModel = INITIAL_DEFAULT_MODEL;
 
-  constructor() {
-    this.client = new OpenRouter({
-      apiKey: process.env.OPENROUTER_API_KEY,
-    });
+  constructor(private readonly keyService: KeyService) {}
+
+  private getClient(): OpenRouter {
+    const apiKey = this.keyService.getActiveKey();
+    if (!apiKey) {
+      throw new HttpException('No active API key configured', 400);
+    }
+    return new OpenRouter({ apiKey });
+  }
+
+  private getApiKey(): string {
+    const apiKey = this.keyService.getActiveKey();
+    if (!apiKey) {
+      throw new HttpException('No active API key configured', 400);
+    }
+    return apiKey;
   }
 
   async *chatStream(
@@ -40,7 +52,8 @@ export class LlmService {
     model: string,
     signal: AbortSignal,
   ): AsyncGenerator<LlmStreamEvent> {
-    const stream = await this.client.chat.send(
+    const client = this.getClient();
+    const stream = await client.chat.send(
       {
         chatRequest: {
           model,
@@ -91,7 +104,8 @@ export class LlmService {
       content: `Generate a concise 3-6 word title for a new conversation that begins with this message:\n\n"${userMessage}"\n\nRespond with ONLY the title — no quotes, no trailing punctuation, no explanation.`,
     };
 
-    const result = await this.client.chat.send(
+    const client = this.getClient();
+    const result = await client.chat.send(
       {
         chatRequest: {
           model,
@@ -112,7 +126,7 @@ export class LlmService {
 
   async getModels(search?: string, limit = 10): Promise<ModelDto[]> {
     const response = await fetch(OPENROUTER_MODELS_URL, {
-      headers: { Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}` },
+      headers: { Authorization: `Bearer ${this.getApiKey()}` },
     });
 
     const json = (await response.json()) as OpenRouterModelsResponse;
@@ -144,7 +158,7 @@ export class LlmService {
 
   async getDefaultModel(): Promise<ModelDto> {
     const response = await fetch(OPENROUTER_MODELS_URL, {
-      headers: { Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}` },
+      headers: { Authorization: `Bearer ${this.getApiKey()}` },
     });
 
     const json = (await response.json()) as OpenRouterModelsResponse;
@@ -168,7 +182,8 @@ export class LlmService {
   }
 
   async getKeyInfo(): Promise<KeyInfo> {
-    const res = await this.client.apiKeys.getCurrentKeyMetadata();
+    const client = this.getClient();
+    const res = await client.apiKeys.getCurrentKeyMetadata();
     const data = res.data;
     return {
       label: data.label,
@@ -184,9 +199,10 @@ export class LlmService {
   }
 
   private async lookupCost(generationId: string): Promise<number> {
+    const client = this.getClient();
     for (let attempt = 0; attempt < GENERATION_LOOKUP_ATTEMPTS; attempt++) {
       try {
-        const res = await this.client.generations.getGeneration({
+        const res = await client.generations.getGeneration({
           id: generationId,
         });
         return res.data.totalCost;

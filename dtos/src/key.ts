@@ -13,3 +13,24 @@ export const KeyInfoSchema = z.object({
 });
 
 export type KeyInfo = z.infer<typeof KeyInfoSchema>;
+
+export const KeyLabelSchema = z.string().trim().min(1).max(64);
+
+export const CreateKeySchema = z.object({
+  label: KeyLabelSchema,
+  key: z.string().trim().min(1),
+});
+
+export const SetActiveKeySchema = z.object({
+  id: z.string().uuid(),
+});
+
+export type CreateKeyRequest = z.infer<typeof CreateKeySchema>;
+export type SetActiveKeyRequest = z.infer<typeof SetActiveKeySchema>;
+
+export interface KeyListItem {
+  id: string;
+  label: string;
+  keyTail: string;
+  isActive: boolean;
+}

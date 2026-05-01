@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { LlmService } from './llm/llm.service.js';
+import { KeyService } from './key/key.service.js';
 import { KontekstService } from './kontekst/kontekst.service.js';
 import {
   RenameKontekstDto,
@@ -26,12 +27,14 @@ import type {
   ConversationDto,
   ConversationSummary,
   KeyInfo,
+  KeyListItem,
   KontekstDto,
   ModelDto,
   Shortcuts,
   StreamEvent,
 } from '@kontekst/dtos';
 import { SetDefaultModelDto } from './dtos/model.dto.js';
+import { CreateKeyDto, SetActiveKeyDto } from './dtos/key.dto.js';
 
 @Controller()
 export class AppController {
@@ -39,6 +42,7 @@ export class AppController {
     private readonly llmService: LlmService,
     private readonly kontekstService: KontekstService,
     private readonly conversationService: ConversationService,
+    private readonly keyService: KeyService,
   ) {}
 
   @Post('chat')
@@ -114,6 +118,28 @@ export class AppController {
   @Get('key')
   getKeyInfo(): Promise<KeyInfo> {
     return this.llmService.getKeyInfo();
+  }
+
+  @Get('keys')
+  listKeys(): KeyListItem[] {
+    return this.keyService.listKeys();
+  }
+
+  @Post('keys')
+  addKey(@Body() body: CreateKeyDto): Promise<KeyListItem> {
+    return this.keyService.addKey(body.label, body.key);
+  }
+
+  @Delete('keys')
+  @HttpCode(204)
+  deleteKey(@Query('id') id: string): void {
+    this.keyService.deleteKey(id);
+  }
+
+  @Post('keys/active')
+  @HttpCode(204)
+  setActiveKey(@Body() body: SetActiveKeyDto): void {
+    this.keyService.setActive(body.id);
   }
 
   @Get('models')

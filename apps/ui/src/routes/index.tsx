@@ -8,7 +8,7 @@ import ThemeToggle from "#/components/ThemeToggle";
 import { Button } from "#/components/ui/button";
 import { Kbd } from "#/components/ui/kbd";
 import { Textarea } from "#/components/ui/textarea";
-import type { ModelDto, StreamEvent } from "@kontekst/dtos";
+import type { KeyListItem, ModelDto, StreamEvent } from "@kontekst/dtos";
 import { StreamEventSchema } from "@kontekst/dtos";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -61,9 +61,16 @@ function App() {
     };
   }, [registerStreamCanceller]);
 
+  const { data: keys = [] } = useQuery<KeyListItem[]>({
+    queryKey: ["keys"],
+    queryFn: () => fetch("/api/keys").then((res) => res.json()),
+  });
+  const hasActiveKey = keys.some((k) => k.isActive);
+
   const { data: defaultModel } = useQuery<ModelDto>({
     queryKey: ["models", "default"],
     queryFn: () => fetch("/api/models/default").then((res) => res.json()),
+    enabled: hasActiveKey,
   });
 
   useEffect(() => {
@@ -320,15 +327,19 @@ function App() {
       </div>
       <form onSubmit={handleSubmit}>
         <div className="flex items-center justify-between mb-2">
-          <ModelSelector
-            selectedModel={selectedModel}
-            selectedModelDto={selectedModelDto}
-            onSelect={(model) => {
-              setSelectedModel(model.id);
-              setSelectedModelDto(model);
-              setModelContextLength(model.contextLength);
-            }}
-          />
+          {hasActiveKey ? (
+            <ModelSelector
+              selectedModel={selectedModel}
+              selectedModelDto={selectedModelDto}
+              onSelect={(model) => {
+                setSelectedModel(model.id);
+                setSelectedModelDto(model);
+                setModelContextLength(model.contextLength);
+              }}
+            />
+          ) : (
+            <span />
+          )}
           <div className="flex items-center gap-3 mr-1 text-xs text-muted-foreground">
             {conversationCost > 0 && (
               <span title="Spent on this conversation">
@@ -347,10 +358,19 @@ function App() {
             )}
           </div>
         </div>
+        {!hasActiveKey && (
+          <div className="mb-2 rounded-md border border-border bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+            Add an OpenRouter API key to start chatting. Open the wallet menu
+            in the top bar.
+          </div>
+        )}
         <Textarea
           ref={textareaRef}
-          placeholder="How can I help you? [/]"
+          placeholder={
+            hasActiveKey ? "How can I help you? [/]" : "Add an API key first…"
+          }
           value={input}
+          disabled={!hasActiveKey}
           onChange={(e) => {
             setInput(e.target.value);
             setChatError(undefined);
@@ -368,7 +388,7 @@ function App() {
             className="flex-1 hover:cursor-pointer"
             variant="outline"
             type="submit"
-            disabled={isStreaming}
+            disabled={isStreaming || !hasActiveKey}
           >
             Send {isMac !== null && <Kbd>{isMac ? "⌘" : "ctrl"} + Enter</Kbd>}
           </Button>
