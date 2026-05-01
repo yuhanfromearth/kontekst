@@ -4,8 +4,8 @@ OpenRouter wrapper with minimal UI and local Context Management with utility key
 
 ## Layout
 
-- `apps/be` — NestJS backend (was `kontekst-be`)
-- `apps/ui` — Vite + TanStack Start frontend (was `kontekst-ui`)
+- `apps/be` — NestJS backend
+- `apps/ui` — Vite + TanStack Start frontend
 
 ## Getting started
 
@@ -15,3 +15,11 @@ Install all dependencies once at the repo root (npm workspaces) and start the fr
 npm install
 npm run start
 ```
+
+## Storage
+
+The backend persists all state as JSON files inside the directory pointed to by the `KONTEKST_FOLDER` environment variable. The folder must exist; the files are created on first read.
+
+- `keys.json` — OpenRouter API keys. Written with mode `0600` (owner read/write only). Manage them from the wallet menu in the UI; chat is disabled until at least one key is added.
+- `konteksts.json` — named LLM contexts (system prompts).
+- `conversations.json` — full chat history per conversation, including the resolved kontekst, model, messages.
