@@ -30,7 +30,11 @@ export class ConversationService {
     const isNew = !conversationId;
     const id = conversationId ?? crypto.randomUUID();
     if (isNew) {
-      store[id] = { messages: [], kontekstName, model };
+      // Persist immediately so a failure during the LLM call (e.g. an
+      // OpenRouter credit error) doesn't leave the client holding a
+      // conversationId that points to nothing on disk.
+      store[id] = { messages: [], kontekstName, model, totalCost: 0 };
+      this.writeStore(store);
     }
 
     const conversation = this.findEntry(store, id);
@@ -50,15 +54,19 @@ export class ConversationService {
       : this.llmService
           .generateTitle(systemPrompt, message, conversation.model, signal)
           .then(
-            (title) => ({ ok: true, title }) as const,
+            ({ title, cost }) => ({ ok: true, title, cost }) as const,
             () => ({ ok: false }) as const,
           );
 
     let titleEmitted = conversation.title !== undefined;
     let resolvedTitle: string | undefined;
+    let titleCost = 0;
     if (titlePromise) {
       void titlePromise.then((res) => {
-        if (res.ok) resolvedTitle = res.title;
+        if (res.ok) {
+          resolvedTitle = res.title;
+          titleCost = res.cost;
+        }
       });
     }
 
@@ -88,12 +96,19 @@ export class ConversationService {
         const res = await titlePromise;
         if (res?.ok) {
           resolvedTitle = res.title;
+          titleCost = res.cost;
           titleEmitted = true;
           yield { type: 'title', title: res.title };
         }
       }
 
-      if (usage) yield { type: 'usage', usage };
+      const turnCost = (usage?.cost ?? 0) + titleCost;
+      conversation.totalCost = (conversation.totalCost ?? 0) + turnCost;
+
+      if (usage) {
+        usage.cost = turnCost;
+        yield { type: 'usage', usage };
+      }
 
       conversation.messages.push({ role: 'user', content: message });
       conversation.messages.push({ role: 'assistant', content: accumulated });
@@ -103,6 +118,25 @@ export class ConversationService {
       yield { type: 'done' };
     } catch (err) {
       if (signal.aborted) return;
+
+      // Title generation runs in parallel; if it resolved before the chat
+      // call errored, credits were already spent. Capture them so the
+      // persisted total reflects reality.
+      if (titlePromise && !titleEmitted) {
+        const res = await titlePromise;
+        if (res.ok) {
+          resolvedTitle = res.title;
+          titleCost = res.cost;
+          titleEmitted = true;
+          yield { type: 'title', title: res.title };
+        }
+      }
+      if (titleCost > 0) {
+        conversation.totalCost = (conversation.totalCost ?? 0) + titleCost;
+      }
+      if (resolvedTitle) conversation.title = resolvedTitle;
+      this.writeStore(store);
+
       const messageText = err instanceof Error ? err.message : 'Stream failed';
       yield { type: 'error', message: messageText };
     }
@@ -115,6 +149,7 @@ export class ConversationService {
       title: entry.title,
       kontekstName: entry.kontekstName,
       model: entry.model,
+      totalCost: entry.totalCost ?? 0,
     }));
   }
 
@@ -127,6 +162,7 @@ export class ConversationService {
       kontekstName: entry.kontekstName,
       model: entry.model,
       messages: entry.messages,
+      totalCost: entry.totalCost ?? 0,
     };
   }
 

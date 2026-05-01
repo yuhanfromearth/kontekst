@@ -13,6 +13,8 @@ interface ConversationState {
   setConversationId: (id: string | undefined) => void;
   tokenUsage: TokenUsage | undefined;
   setTokenUsage: (usage: TokenUsage | undefined) => void;
+  conversationCost: number;
+  setConversationCost: React.Dispatch<React.SetStateAction<number>>;
   selectedKontekst: string | undefined;
   setSelectedKontekst: (name: string | undefined) => void;
   selectedModel: string;
@@ -37,6 +39,7 @@ export function ConversationProvider({
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | undefined>();
   const [tokenUsage, setTokenUsage] = useState<TokenUsage | undefined>();
+  const [conversationCost, setConversationCost] = useState(0);
   const [selectedKontekst, setSelectedKontekst] = useState<
     string | undefined
   >();
@@ -62,6 +65,7 @@ export function ConversationProvider({
     setSelectedModel(dto.model);
     setSelectedModelDto(undefined);
     setTokenUsage(undefined);
+    setConversationCost(dto.totalCost);
   };
 
   return (
@@ -73,6 +77,8 @@ export function ConversationProvider({
         setConversationId,
         tokenUsage,
         setTokenUsage,
+        conversationCost,
+        setConversationCost,
         selectedKontekst,
         setSelectedKontekst,
         selectedModel,

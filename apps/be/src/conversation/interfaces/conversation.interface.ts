@@ -5,4 +5,5 @@ export interface ConversationEntry {
   kontekstName?: string;
   model: string;
   title?: string;
+  totalCost?: number;
 }

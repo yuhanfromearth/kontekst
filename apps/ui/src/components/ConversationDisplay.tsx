@@ -7,6 +7,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "#/components/ui/popover";
+import { formatCost } from "#/lib/cost";
 import type { ConversationDto, ConversationSummary } from "@kontekst/dtos";
 
 export default function ConversationDisplay({
@@ -97,6 +98,11 @@ export default function ConversationDisplay({
                       <span className="font-mono">{c.kontekstName}</span>
                     )}
                     <span className="truncate">{c.model}</span>
+                    {c.totalCost > 0 && (
+                      <span className="ml-auto shrink-0 tabular-nums">
+                        {formatCost(c.totalCost)}
+                      </span>
+                    )}
                   </div>
                 </button>
                 <button

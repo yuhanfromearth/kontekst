@@ -25,6 +25,7 @@ import { ConversationService } from './conversation/conversation.service.js';
 import type {
   ConversationDto,
   ConversationSummary,
+  KeyInfo,
   KontekstDto,
   ModelDto,
   Shortcuts,
@@ -108,6 +109,11 @@ export class AppController {
   @HttpCode(204)
   setDefaultModel(@Body() body: SetDefaultModelDto): void {
     this.llmService.setDefaultModel(body.modelId);
+  }
+
+  @Get('key')
+  getKeyInfo(): Promise<KeyInfo> {
+    return this.llmService.getKeyInfo();
   }
 
   @Get('models')

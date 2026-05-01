@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { OpenRouter } from '@openrouter/sdk';
-import type { Message, ModelDto, TokenUsage } from '@kontekst/dtos';
+import type { KeyInfo, Message, ModelDto, TokenUsage } from '@kontekst/dtos';
 import { OpenRouterModelsResponse } from './interfaces/openrouter.interface.js';
 
 export type LlmStreamEvent =
@@ -10,9 +10,22 @@ export type LlmStreamEvent =
 const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models';
 const INITIAL_DEFAULT_MODEL = 'google/gemini-3-flash-preview';
 
+// OpenRouter does a pre-flight credit check on `max_tokens × completion_price`.
+// Without an explicit cap it uses the model's full output capacity (often 64k+),
+// which fails on tight weekly budgets even for tiny prompts. Cap to a sensible
+// reply size for chat and a tiny budget for the 3–6 word title generation.
+const CHAT_MAX_TOKENS = 8192;
+const TITLE_MAX_TOKENS = 32;
+
+// OpenRouter records the generation asynchronously, so /generation can 404
+// briefly after the stream closes. Retry a handful of times before giving up.
+const GENERATION_LOOKUP_ATTEMPTS = 5;
+const GENERATION_LOOKUP_DELAY_MS = 400;
+
 @Injectable()
 export class LlmService {
   private readonly client: OpenRouter;
+  private readonly logger = new Logger(LlmService.name);
   private defaultModel = INITIAL_DEFAULT_MODEL;
 
   constructor() {
@@ -32,6 +45,7 @@ export class LlmService {
         chatRequest: {
           model,
           stream: true,
+          maxTokens: CHAT_MAX_TOKENS,
           messages: systemPrompt
             ? [{ role: 'system', content: systemPrompt }, ...messages]
             : messages,
@@ -40,21 +54,29 @@ export class LlmService {
       { signal },
     );
 
+    let lastChunkId: string | undefined;
+    let usage: TokenUsage | undefined;
+
     for await (const chunk of stream) {
+      if (chunk.id) lastChunkId = chunk.id;
+
       const delta = chunk.choices?.[0]?.delta?.content;
       if (delta) {
         yield { type: 'delta', content: delta };
       }
       if (chunk.usage) {
-        yield {
-          type: 'usage',
-          usage: {
-            completionTokens: chunk.usage.completionTokens,
-            promptTokens: chunk.usage.promptTokens,
-            totalTokens: chunk.usage.totalTokens,
-          },
+        usage = {
+          completionTokens: chunk.usage.completionTokens,
+          promptTokens: chunk.usage.promptTokens,
+          totalTokens: chunk.usage.totalTokens,
+          cost: 0,
         };
       }
+    }
+
+    if (usage) {
+      usage.cost = lastChunkId ? await this.lookupCost(lastChunkId) : 0;
+      yield { type: 'usage', usage };
     }
   }
 
@@ -63,7 +85,7 @@ export class LlmService {
     userMessage: string,
     model: string,
     signal?: AbortSignal,
-  ): Promise<string> {
+  ): Promise<{ title: string; cost: number }> {
     const userPrompt = {
       role: 'user' as const,
       content: `Generate a concise 3-6 word title for a new conversation that begins with this message:\n\n"${userMessage}"\n\nRespond with ONLY the title — no quotes, no trailing punctuation, no explanation.`,
@@ -73,6 +95,7 @@ export class LlmService {
       {
         chatRequest: {
           model,
+          maxTokens: TITLE_MAX_TOKENS,
           messages: systemPrompt
             ? [{ role: 'system', content: systemPrompt }, userPrompt]
             : [userPrompt],
@@ -81,7 +104,10 @@ export class LlmService {
       { signal },
     );
 
-    return (result.choices[0].message.content as string).trim();
+    const title = (result.choices[0].message.content as string).trim();
+    const cost = result.id ? await this.lookupCost(result.id) : 0;
+
+    return { title, cost };
   }
 
   async getModels(search?: string, limit = 10): Promise<ModelDto[]> {
@@ -139,5 +165,38 @@ export class LlmService {
         completion: match.pricing.completion,
       },
     };
+  }
+
+  async getKeyInfo(): Promise<KeyInfo> {
+    const res = await this.client.apiKeys.getCurrentKeyMetadata();
+    const data = res.data;
+    return {
+      label: data.label,
+      limit: data.limit,
+      limitRemaining: data.limitRemaining,
+      limitReset: data.limitReset,
+      usage: data.usage,
+      usageDaily: data.usageDaily,
+      usageWeekly: data.usageWeekly,
+      usageMonthly: data.usageMonthly,
+      isFreeTier: data.isFreeTier,
+    };
+  }
+
+  private async lookupCost(generationId: string): Promise<number> {
+    for (let attempt = 0; attempt < GENERATION_LOOKUP_ATTEMPTS; attempt++) {
+      try {
+        const res = await this.client.generations.getGeneration({
+          id: generationId,
+        });
+        return res.data.totalCost;
+      } catch {
+        await new Promise((r) => setTimeout(r, GENERATION_LOOKUP_DELAY_MS));
+      }
+    }
+    this.logger.warn(
+      `Could not retrieve cost for generation ${generationId}; recording 0`,
+    );
+    return 0;
   }
 }

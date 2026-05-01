@@ -20,6 +20,7 @@ export const TokenUsageSchema = z.object({
   promptTokens: z.number(),
   completionTokens: z.number(),
   totalTokens: z.number(),
+  cost: z.number(),
 });
 
 export type TokenUsage = z.infer<typeof TokenUsageSchema>;

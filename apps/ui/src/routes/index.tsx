@@ -2,6 +2,7 @@ import KontekstDisplay from "#/components/KontekstDisplay";
 import KontekstLogo from "#/components/KontekstLogo";
 import ConversationHistory from "#/components/ConversationHistory";
 import ConversationDisplay from "#/components/ConversationDisplay";
+import KeyUsageDisplay from "#/components/KeyUsageDisplay";
 import ModelSelector from "#/components/ModelSelector";
 import ThemeToggle from "#/components/ThemeToggle";
 import { Button } from "#/components/ui/button";
@@ -12,6 +13,7 @@ import { StreamEventSchema } from "@kontekst/dtos";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { createParser } from "eventsource-parser";
+import { formatCost } from "#/lib/cost";
 import { formatTokens } from "#/lib/tokens";
 import { useEffect, useRef, useState } from "react";
 import { useConversation } from "#/components/ConversationContext";
@@ -29,6 +31,8 @@ function App() {
     setConversationId,
     tokenUsage,
     setTokenUsage,
+    conversationCost,
+    setConversationCost,
     selectedKontekst,
     setSelectedKontekst,
     selectedModel,
@@ -179,6 +183,9 @@ function App() {
           break;
         case "usage":
           setTokenUsage(evt.usage);
+          setConversationCost((prev) => prev + evt.usage.cost);
+          queryClient.invalidateQueries({ queryKey: ["keyInfo"] });
+          queryClient.invalidateQueries({ queryKey: ["conversations"] });
           break;
         case "done":
           break;
@@ -296,6 +303,7 @@ function App() {
         <KontekstLogo className="ml-2" />
         <div className="flex items-center gap-1">
           <ConversationDisplay kontekstList={kontekstList} />
+          <KeyUsageDisplay />
           <ThemeToggle />
           <button
             type="button"
@@ -321,14 +329,23 @@ function App() {
               setModelContextLength(model.contextLength);
             }}
           />
-          {tokenUsage && modelContextLength > 0 && (
-            <span className="text-xs text-muted-foreground mr-1">
-              {formatTokens(tokenUsage.totalTokens)} /{" "}
-              {formatTokens(modelContextLength)} (
-              {Math.round((tokenUsage.totalTokens / modelContextLength) * 100)}
-              %)
-            </span>
-          )}
+          <div className="flex items-center gap-3 mr-1 text-xs text-muted-foreground">
+            {conversationCost > 0 && (
+              <span title="Spent on this conversation">
+                {formatCost(conversationCost)}
+              </span>
+            )}
+            {tokenUsage && modelContextLength > 0 && (
+              <span>
+                {formatTokens(tokenUsage.totalTokens)} /{" "}
+                {formatTokens(modelContextLength)} (
+                {Math.round(
+                  (tokenUsage.totalTokens / modelContextLength) * 100,
+                )}
+                %)
+              </span>
+            )}
+          </div>
         </div>
         <Textarea
           ref={textareaRef}
@@ -365,6 +382,7 @@ function App() {
               setMessages([]);
               setConversationId(undefined);
               setTokenUsage(undefined);
+              setConversationCost(0);
               setChatError(undefined);
             }}
           >

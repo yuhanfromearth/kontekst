@@ -5,12 +5,9 @@ export interface ConversationSummary {
   title?: string;
   kontekstName?: string;
   model: string;
+  totalCost: number;
 }
 
-export interface ConversationDto {
-  id: string;
-  title?: string;
-  kontekstName?: string;
-  model: string;
+export interface ConversationDto extends ConversationSummary {
   messages: Message[];
 }
