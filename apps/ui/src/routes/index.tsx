@@ -61,11 +61,12 @@ function App() {
     };
   }, [registerStreamCanceller]);
 
-  const { data: keys = [] } = useQuery<KeyListItem[]>({
+  const { data: keys = [], isPending: keysLoading } = useQuery<KeyListItem[]>({
     queryKey: ["keys"],
     queryFn: () => fetch("/api/keys").then((res) => res.json()),
   });
   const hasActiveKey = keys.some((k) => k.isActive);
+  const showNoKey = !keysLoading && !hasActiveKey;
 
   const { data: defaultModel } = useQuery<ModelDto>({
     queryKey: ["models", "default"],
@@ -327,7 +328,9 @@ function App() {
       </div>
       <form onSubmit={handleSubmit}>
         <div className="flex items-center justify-between mb-2">
-          {hasActiveKey ? (
+          {showNoKey ? (
+            <span />
+          ) : (
             <ModelSelector
               selectedModel={selectedModel}
               selectedModelDto={selectedModelDto}
@@ -337,8 +340,6 @@ function App() {
                 setModelContextLength(model.contextLength);
               }}
             />
-          ) : (
-            <span />
           )}
           <div className="flex items-center gap-3 mr-1 text-xs text-muted-foreground">
             {conversationCost > 0 && (
@@ -358,7 +359,7 @@ function App() {
             )}
           </div>
         </div>
-        {!hasActiveKey && (
+        {showNoKey && (
           <div className="mb-2 rounded-md border border-border bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
             Add an OpenRouter API key to start chatting. Open the wallet menu
             in the top bar.
@@ -367,10 +368,10 @@ function App() {
         <Textarea
           ref={textareaRef}
           placeholder={
-            hasActiveKey ? "How can I help you? [/]" : "Add an API key first…"
+            showNoKey ? "Add an API key first…" : "How can I help you? [/]"
           }
           value={input}
-          disabled={!hasActiveKey}
+          disabled={showNoKey}
           onChange={(e) => {
             setInput(e.target.value);
             setChatError(undefined);
@@ -388,7 +389,7 @@ function App() {
             className="flex-1 hover:cursor-pointer"
             variant="outline"
             type="submit"
-            disabled={isStreaming || !hasActiveKey}
+            disabled={isStreaming || showNoKey}
           >
             Send {isMac !== null && <Kbd>{isMac ? "⌘" : "ctrl"} + Enter</Kbd>}
           </Button>

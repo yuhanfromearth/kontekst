@@ -15,13 +15,14 @@ import type { KeyInfo, KeyListItem } from "@kontekst/dtos";
 export default function KeyUsageDisplay() {
   const queryClient = useQueryClient();
 
-  const { data: keys = [] } = useQuery<KeyListItem[]>({
+  const { data: keys = [], isPending: keysLoading } = useQuery<KeyListItem[]>({
     queryKey: ["keys"],
     queryFn: () => fetch("/api/keys").then((res) => res.json()),
   });
 
   const activeKey = keys.find((k) => k.isActive);
   const hasActive = activeKey !== undefined;
+  const showNoKey = !keysLoading && !hasActive;
 
   const {
     data: usage,
@@ -110,7 +111,7 @@ export default function KeyUsageDisplay() {
         title="API keys"
       >
         <Wallet className="size-4" />
-        {!hasActive && (
+        {showNoKey && (
           <span className="absolute top-0.5 right-0.5 size-1.5 rounded-full bg-destructive" />
         )}
       </PopoverTrigger>
@@ -148,7 +149,7 @@ export default function KeyUsageDisplay() {
           </div>
         )}
 
-        {!hasActive && (
+        {showNoKey && (
           <p className="text-xs text-muted-foreground mb-3">
             No active key. Add one to enable chat.
           </p>
