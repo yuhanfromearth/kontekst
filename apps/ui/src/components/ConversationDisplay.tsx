@@ -38,9 +38,7 @@ export default function ConversationDisplay({
   });
 
   const selectConversation = async (id: string) => {
-    const res = await fetch(
-      `/api/conversation?id=${encodeURIComponent(id)}`,
-    );
+    const res = await fetch(`/api/conversation?id=${encodeURIComponent(id)}`);
     if (!res.ok) return;
     const dto: ConversationDto = await res.json();
     loadConversation(dto);

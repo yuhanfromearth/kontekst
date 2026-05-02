@@ -361,8 +361,8 @@ function App() {
         </div>
         {showNoKey && (
           <div className="mb-2 rounded-md border border-border bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-            Add an OpenRouter API key to start chatting. Open the wallet menu
-            in the top bar.
+            Add an OpenRouter API key to start chatting. Open the wallet menu in
+            the top bar.
           </div>
         )}
         <Textarea
