@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { OpenRouter } from '@openrouter/sdk';
 import type { KeyInfo, Message, TokenUsage } from '@kontekst/dtos';
 import { KeyService } from '../key/key.service.js';
@@ -14,15 +14,14 @@ export type LlmStreamEvent =
 const CHAT_MAX_TOKENS = 8192;
 const TITLE_MAX_TOKENS = 32;
 
-// OpenRouter records the generation asynchronously, so /generation can 404
-// briefly after the stream closes. Retry a handful of times before giving up.
-const GENERATION_LOOKUP_ATTEMPTS = 5;
-const GENERATION_LOOKUP_DELAY_MS = 400;
+// Both chat paths bypass the SDK so we can pass `usage: { include: true }`,
+// which makes OpenRouter return `cost` directly on the response/final usage
+// chunk and avoids the flaky `/generation` lookup entirely. The SDK's outbound
+// zod schema strips that field, so the typed client cannot opt into it.
+const OPENROUTER_CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 @Injectable()
 export class LlmService {
-  private readonly logger = new Logger(LlmService.name);
-
   constructor(private readonly keyService: KeyService) {}
 
   private getClient(): OpenRouter {
@@ -35,45 +34,82 @@ export class LlmService {
     model: string,
     signal: AbortSignal,
   ): AsyncGenerator<LlmStreamEvent> {
-    const client = this.getClient();
-    const stream = await client.chat.send(
-      {
-        chatRequest: {
-          model,
-          stream: true,
-          maxTokens: CHAT_MAX_TOKENS,
-          messages: systemPrompt
-            ? [{ role: 'system', content: systemPrompt }, ...messages]
-            : messages,
-        },
+    const response = await fetch(OPENROUTER_CHAT_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.keyService.requireActiveKey()}`,
+        'Content-Type': 'application/json',
       },
-      { signal },
-    );
+      body: JSON.stringify({
+        model,
+        stream: true,
+        max_tokens: CHAT_MAX_TOKENS,
+        usage: { include: true },
+        messages: systemPrompt
+          ? [{ role: 'system', content: systemPrompt }, ...messages]
+          : messages,
+      }),
+      signal,
+    });
 
-    let lastChunkId: string | undefined;
+    if (!response.ok || !response.body) {
+      const detail = await response.text().catch(() => '');
+      throw new Error(
+        `OpenRouter chat failed: ${response.status} ${response.statusText} ${detail}`,
+      );
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
     let usage: TokenUsage | undefined;
 
-    for await (const chunk of stream) {
-      if (chunk.id) lastChunkId = chunk.id;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
 
-      const delta = chunk.choices?.[0]?.delta?.content;
-      if (delta) {
-        yield { type: 'delta', content: delta };
+        let sep: number;
+        while ((sep = buffer.indexOf('\n\n')) !== -1) {
+          const event = buffer.slice(0, sep);
+          buffer = buffer.slice(sep + 2);
+          for (const line of event.split('\n')) {
+            if (!line.startsWith('data:')) continue;
+            const data = line.slice(5).trim();
+            if (!data || data === '[DONE]') continue;
+            let chunk: {
+              choices?: { delta?: { content?: string } }[];
+              usage?: {
+                prompt_tokens: number;
+                completion_tokens: number;
+                total_tokens: number;
+                cost?: number;
+              };
+            };
+            try {
+              chunk = JSON.parse(data) as typeof chunk;
+            } catch {
+              continue;
+            }
+            const delta = chunk.choices?.[0]?.delta?.content;
+            if (delta) yield { type: 'delta', content: delta };
+            if (chunk.usage) {
+              usage = {
+                promptTokens: chunk.usage.prompt_tokens,
+                completionTokens: chunk.usage.completion_tokens,
+                totalTokens: chunk.usage.total_tokens,
+                cost: chunk.usage.cost ?? 0,
+              };
+            }
+          }
+        }
       }
-      if (chunk.usage) {
-        usage = {
-          completionTokens: chunk.usage.completionTokens,
-          promptTokens: chunk.usage.promptTokens,
-          totalTokens: chunk.usage.totalTokens,
-          cost: 0,
-        };
-      }
+    } finally {
+      reader.releaseLock();
     }
 
-    if (usage) {
-      usage.cost = lastChunkId ? await this.lookupCost(lastChunkId) : 0;
-      yield { type: 'usage', usage };
-    }
+    if (usage) yield { type: 'usage', usage };
   }
 
   async generateTitle(
@@ -87,22 +123,37 @@ export class LlmService {
       content: `Generate a concise 3-6 word title for a new conversation that begins with this message:\n\n"${userMessage}"\n\nRespond with ONLY the title — no quotes, no trailing punctuation, no explanation.`,
     };
 
-    const client = this.getClient();
-    const result = await client.chat.send(
-      {
-        chatRequest: {
-          model,
-          maxTokens: TITLE_MAX_TOKENS,
-          messages: systemPrompt
-            ? [{ role: 'system', content: systemPrompt }, userPrompt]
-            : [userPrompt],
-        },
+    const response = await fetch(OPENROUTER_CHAT_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.keyService.requireActiveKey()}`,
+        'Content-Type': 'application/json',
       },
-      { signal },
-    );
+      body: JSON.stringify({
+        model,
+        max_tokens: TITLE_MAX_TOKENS,
+        usage: { include: true },
+        messages: systemPrompt
+          ? [{ role: 'system', content: systemPrompt }, userPrompt]
+          : [userPrompt],
+      }),
+      signal,
+    });
 
-    const title = (result.choices[0].message.content as string).trim();
-    const cost = result.id ? await this.lookupCost(result.id) : 0;
+    if (!response.ok) {
+      const detail = await response.text().catch(() => '');
+      throw new Error(
+        `OpenRouter title generation failed: ${response.status} ${response.statusText} ${detail}`,
+      );
+    }
+
+    const result = (await response.json()) as {
+      choices: { message: { content: string } }[];
+      usage?: { cost?: number };
+    };
+
+    const title = result.choices[0].message.content.trim();
+    const cost = result.usage?.cost ?? 0;
 
     return { title, cost };
   }
@@ -122,24 +173,5 @@ export class LlmService {
       usageMonthly: data.usageMonthly,
       isFreeTier: data.isFreeTier,
     };
-  }
-
-  private async lookupCost(generationId: string): Promise<number> {
-    const client = this.getClient();
-    for (let attempt = 0; attempt < GENERATION_LOOKUP_ATTEMPTS; attempt++) {
-      try {
-        const res = await client.generations.getGeneration({
-          id: generationId,
-        });
-        return res.data.totalCost;
-      } catch (error) {
-        console.log(error);
-        await new Promise((r) => setTimeout(r, GENERATION_LOOKUP_DELAY_MS));
-      }
-    }
-    this.logger.warn(
-      `Could not retrieve cost for generation ${generationId}; recording 0`,
-    );
-    return 0;
   }
 }
