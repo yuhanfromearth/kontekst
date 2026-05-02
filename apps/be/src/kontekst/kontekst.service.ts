@@ -1,30 +1,17 @@
 import { HttpException, Injectable } from '@nestjs/common';
-import fs from 'fs';
 import type { KontekstDto, Shortcuts } from '@kontekst/dtos';
+import { JsonStore } from '../common/json-store.js';
 import { KontekstStore } from './interfaces/kontekst.type.js';
 
 @Injectable()
 export class KontekstService {
-  private storePath(): string {
-    return `${process.env.KONTEKST_FOLDER}/konteksts.json`;
-  }
-
-  private readStore(): KontekstStore {
-    const path = this.storePath();
-    if (!fs.existsSync(path)) {
-      fs.writeFileSync(path, '{}');
-      return {};
-    }
-
-    return JSON.parse(fs.readFileSync(path, 'utf8')) as KontekstStore;
-  }
-
-  private writeStore(store: KontekstStore): void {
-    fs.writeFileSync(this.storePath(), JSON.stringify(store, null, 2));
-  }
+  private readonly store = new JsonStore<KontekstStore>(
+    'konteksts.json',
+    () => ({}),
+  );
 
   listKonteksts(): string[] {
-    const store = this.readStore();
+    const store = this.store.read();
     const names = Object.keys(store);
 
     if (names.length === 0) {
@@ -47,7 +34,7 @@ export class KontekstService {
 
   setDefaultKontekst(name: string): void {
     const normalizedName = name.trim();
-    const store = this.readStore();
+    const store = this.store.read();
 
     if (!(normalizedName in store)) {
       throw new HttpException(
@@ -61,32 +48,32 @@ export class KontekstService {
     }
 
     store[normalizedName].isDefault = true;
-    this.writeStore(store);
+    this.store.write(store);
   }
 
   getDefaultKontekst(): string | null {
-    const store = this.readStore();
+    const store = this.store.read();
     const entry = Object.entries(store).find(([, e]) => e.isDefault);
     return entry?.[0] ?? null;
   }
 
   clearDefaultKontekst(): void {
-    const store = this.readStore();
+    const store = this.store.read();
     for (const entry of Object.values(store)) {
       delete entry.isDefault;
     }
-    this.writeStore(store);
+    this.store.write(store);
   }
 
   getKontekst(name: string): string {
-    const store = this.readStore();
+    const store = this.store.read();
     const entry = store[name.trim()];
     return entry?.content ?? '';
   }
 
   findKontekst(name: string): KontekstDto {
     const normalizedName = name.trim();
-    const store = this.readStore();
+    const store = this.store.read();
     const entry = store[normalizedName];
 
     return {
@@ -103,7 +90,7 @@ export class KontekstService {
     shortcut?: string,
   ): KontekstDto {
     const normalizedName = name.trim();
-    const store = this.readStore();
+    const store = this.store.read();
 
     if (normalizedName in store && !overwrite) {
       throw new HttpException(
@@ -113,7 +100,7 @@ export class KontekstService {
     }
 
     store[normalizedName] = { content };
-    this.writeStore(store);
+    this.store.write(store);
 
     if (shortcut) {
       this.setShortcut(normalizedName, shortcut);
@@ -124,7 +111,7 @@ export class KontekstService {
 
   deleteKontekst(name: string): void {
     const normalizedName = name.trim();
-    const store = this.readStore();
+    const store = this.store.read();
 
     if (!(normalizedName in store)) {
       throw new HttpException(
@@ -134,13 +121,13 @@ export class KontekstService {
     }
 
     delete store[normalizedName];
-    this.writeStore(store);
+    this.store.write(store);
   }
 
   renameKontekst(name: string, newName: string): KontekstDto {
     const normalizedName = name.trim();
     const normalizedNewName = newName.trim();
-    const store = this.readStore();
+    const store = this.store.read();
 
     if (!(normalizedName in store)) {
       throw new HttpException(
@@ -151,13 +138,13 @@ export class KontekstService {
 
     store[normalizedNewName] = store[normalizedName];
     delete store[normalizedName];
-    this.writeStore(store);
+    this.store.write(store);
 
     return this.findKontekst(normalizedNewName);
   }
 
   getShortcuts(): Shortcuts {
-    const store = this.readStore();
+    const store = this.store.read();
     return Object.fromEntries(
       Object.entries(store)
         .filter(([, entry]) => entry.shortcut !== undefined)
@@ -168,7 +155,7 @@ export class KontekstService {
   setShortcut(kontekstName: string, shortcut: string): void {
     const normalizedName = kontekstName.trim();
     const normalizedShortcut = shortcut.trim();
-    const store = this.readStore();
+    const store = this.store.read();
 
     if (!(normalizedName in store)) {
       throw new HttpException(
@@ -190,18 +177,18 @@ export class KontekstService {
     }
 
     store[normalizedName].shortcut = normalizedShortcut;
-    this.writeStore(store);
+    this.store.write(store);
   }
 
   deleteShortcut(kontekstName: string): void {
     const normalizedName = kontekstName.trim();
-    const store = this.readStore();
+    const store = this.store.read();
 
     if (!store[normalizedName]?.shortcut) {
       throw new HttpException(`No shortcut assigned to '${kontekstName}'`, 404);
     }
 
     delete store[normalizedName].shortcut;
-    this.writeStore(store);
+    this.store.write(store);
   }
 }

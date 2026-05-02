@@ -15,6 +15,7 @@ import type { Request, Response } from 'express';
 import { LlmService } from './llm/llm.service.js';
 import { KeyService } from './key/key.service.js';
 import { KontekstService } from './kontekst/kontekst.service.js';
+import { ModelService } from './model/model.service.js';
 import {
   RenameKontekstDto,
   SaveKontekstDto,
@@ -43,6 +44,7 @@ export class AppController {
     private readonly kontekstService: KontekstService,
     private readonly conversationService: ConversationService,
     private readonly keyService: KeyService,
+    private readonly modelService: ModelService,
   ) {}
 
   @Post('chat')
@@ -106,13 +108,13 @@ export class AppController {
 
   @Get('models/default')
   getDefaultModel(): Promise<ModelDto> {
-    return this.llmService.getDefaultModel();
+    return this.modelService.getDefaultModel();
   }
 
   @Post('models/default')
   @HttpCode(204)
   setDefaultModel(@Body() body: SetDefaultModelDto): void {
-    this.llmService.setDefaultModel(body.modelId);
+    this.modelService.setDefaultModel(body.modelId);
   }
 
   @Get('key')
@@ -147,7 +149,7 @@ export class AppController {
     @Query('search') search?: string,
     @Query('limit', ParseIntPipe) limit = 10,
   ): Promise<ModelDto[]> {
-    return this.llmService.getModels(search, limit);
+    return this.modelService.getModels(search, limit);
   }
 
   @Get('kontekst')
