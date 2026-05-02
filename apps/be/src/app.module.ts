@@ -11,6 +11,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { KontekstModule } from './kontekst/kontekst.module.js';
 import { ConversationModule } from './conversation/conversation.module.js';
 import { KeyModule } from './key/key.module.js';
+import { ModelModule } from './model/model.module.js';
 
 const clientRoot = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -31,6 +32,7 @@ const clientRoot = join(
     KontekstModule,
     ConversationModule,
     KeyModule,
+    ModelModule,
   ],
   controllers: [AppController],
   providers: [

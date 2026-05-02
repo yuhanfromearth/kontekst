@@ -31,6 +31,14 @@ export class KeyService {
     return active?.key ?? null;
   }
 
+  requireActiveKey(): string {
+    const key = this.getActiveKey();
+    if (!key) {
+      throw new HttpException('No active API key configured', 400);
+    }
+    return key;
+  }
+
   hasActiveKey(): boolean {
     return this.getActiveKey() !== null;
   }

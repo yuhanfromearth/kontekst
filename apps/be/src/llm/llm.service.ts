@@ -1,15 +1,11 @@
-import { HttpException, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { OpenRouter } from '@openrouter/sdk';
-import type { KeyInfo, Message, ModelDto, TokenUsage } from '@kontekst/dtos';
-import { OpenRouterModelsResponse } from './interfaces/openrouter.interface.js';
+import type { KeyInfo, Message, TokenUsage } from '@kontekst/dtos';
 import { KeyService } from '../key/key.service.js';
 
 export type LlmStreamEvent =
   | { type: 'delta'; content: string }
   | { type: 'usage'; usage: TokenUsage };
-
-const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models';
-const INITIAL_DEFAULT_MODEL = 'google/gemini-3-flash-preview';
 
 // OpenRouter does a pre-flight credit check on `max_tokens × completion_price`.
 // Without an explicit cap it uses the model's full output capacity (often 64k+),
@@ -26,24 +22,11 @@ const GENERATION_LOOKUP_DELAY_MS = 400;
 @Injectable()
 export class LlmService {
   private readonly logger = new Logger(LlmService.name);
-  private defaultModel = INITIAL_DEFAULT_MODEL;
 
   constructor(private readonly keyService: KeyService) {}
 
   private getClient(): OpenRouter {
-    const apiKey = this.keyService.getActiveKey();
-    if (!apiKey) {
-      throw new HttpException('No active API key configured', 400);
-    }
-    return new OpenRouter({ apiKey });
-  }
-
-  private getApiKey(): string {
-    const apiKey = this.keyService.getActiveKey();
-    if (!apiKey) {
-      throw new HttpException('No active API key configured', 400);
-    }
-    return apiKey;
+    return new OpenRouter({ apiKey: this.keyService.requireActiveKey() });
   }
 
   async *chatStream(
@@ -122,63 +105,6 @@ export class LlmService {
     const cost = result.id ? await this.lookupCost(result.id) : 0;
 
     return { title, cost };
-  }
-
-  async getModels(search?: string, limit = 10): Promise<ModelDto[]> {
-    const response = await fetch(OPENROUTER_MODELS_URL, {
-      headers: { Authorization: `Bearer ${this.getApiKey()}` },
-    });
-
-    const json = (await response.json()) as OpenRouterModelsResponse;
-
-    const models: ModelDto[] = json.data.map((m) => ({
-      id: m.id,
-      name: m.name,
-      description: m.description ?? null,
-      contextLength: m.context_length,
-      pricing: { prompt: m.pricing.prompt, completion: m.pricing.completion },
-    }));
-
-    const filtered = search
-      ? models.filter((m) => {
-          const query = search.toLowerCase();
-          return (
-            m.id.toLowerCase().includes(query) ||
-            m.name.toLowerCase().includes(query)
-          );
-        })
-      : models;
-
-    return filtered.slice(0, limit);
-  }
-
-  setDefaultModel(modelId: string): void {
-    this.defaultModel = modelId;
-  }
-
-  async getDefaultModel(): Promise<ModelDto> {
-    const response = await fetch(OPENROUTER_MODELS_URL, {
-      headers: { Authorization: `Bearer ${this.getApiKey()}` },
-    });
-
-    const json = (await response.json()) as OpenRouterModelsResponse;
-
-    const match = json.data.find((m) => m.id === this.defaultModel);
-
-    if (!match) {
-      throw new Error(`Default model '${this.defaultModel}' not found`);
-    }
-
-    return {
-      id: match.id,
-      name: match.name,
-      description: match.description ?? null,
-      contextLength: match.context_length,
-      pricing: {
-        prompt: match.pricing.prompt,
-        completion: match.pricing.completion,
-      },
-    };
   }
 
   async getKeyInfo(): Promise<KeyInfo> {
