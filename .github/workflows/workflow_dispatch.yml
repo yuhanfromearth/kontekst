@@ -1,0 +1,10 @@
+name: Workflow Dispatch
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Yippie-ya-yay, Schweinebacke"
