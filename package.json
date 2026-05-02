@@ -1,7 +1,21 @@
 {
   "name": "kontekst",
-  "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "description": "OpenRouter wrapper with minimal UI and local context management with utility keyboard shortcuts. Chat with any LLM, at API cost, without the noise.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "kontekst": "./bin/kontekst.mjs"
+  },
+  "files": [
+    "bin",
+    "apps/be/dist",
+    "apps/be/package.json",
+    "apps/ui/dist/client"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "workspaces": [
     "apps/*",
     "dtos"
@@ -9,8 +23,27 @@
   "scripts": {
     "build:dtos": "npm run build --workspace=dtos",
     "build": "npm run build:dtos && npm run build --workspace=apps/be && npm run build --workspace=apps/ui",
-    "start": "npm run build:dtos && concurrently -n dtos,be,ui -c yellow,blue,magenta \"npm run dev --workspace=dtos\" \"npm run start:dev --workspace=apps/be\" \"npm run dev --workspace=apps/ui\""
+    "start": "npm run build:dtos && concurrently -n dtos,be,ui -c yellow,blue,magenta \"npm run dev --workspace=dtos\" \"npm run start:dev --workspace=apps/be\" \"npm run dev --workspace=apps/ui\"",
+    "start:prod": "npm run build && node bin/kontekst.mjs",
+    "prepack": "npm run build && node scripts/prepack.mjs",
+    "postpack": "node scripts/postpack.mjs"
   },
+  "dependencies": {
+    "@kontekst/dtos": "0.1.0",
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/config": "^4.0.3",
+    "@nestjs/core": "^11.0.1",
+    "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/serve-static": "^5.0.5",
+    "@openrouter/sdk": "^0.11.2",
+    "nestjs-zod": "^5.3.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1",
+    "zod": "^4.0.0"
+  },
+  "bundleDependencies": [
+    "@kontekst/dtos"
+  ],
   "devDependencies": {
     "concurrently": "^9.2.1"
   }

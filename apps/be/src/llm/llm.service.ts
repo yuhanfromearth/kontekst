@@ -206,7 +206,8 @@ export class LlmService {
           id: generationId,
         });
         return res.data.totalCost;
-      } catch {
+      } catch (error) {
+        console.log(error);
         await new Promise((r) => setTimeout(r, GENERATION_LOOKUP_DELAY_MS));
       }
     }

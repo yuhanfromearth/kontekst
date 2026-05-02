@@ -12,7 +12,12 @@ const config = defineConfig({
     devtools(),
     tsconfigPaths({ projects: ["./tsconfig.json"] }),
     tailwindcss(),
-    tanstackStart(),
+    tanstackStart({
+      spa: {
+        enabled: true,
+        prerender: { outputPath: "/index.html" },
+      },
+    }),
     viteReact(),
   ],
   server: {
@@ -20,7 +25,6 @@ const config = defineConfig({
       "/api": {
         target: "http://localhost:8080",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ""),
       },
     },
   },
