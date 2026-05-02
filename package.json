@@ -1,6 +1,6 @@
 {
   "name": "kontekst",
-  "version": "0.1.0",
+  "version": "0.0.0-development",
   "description": "OpenRouter wrapper with minimal UI and local context management with utility keyboard shortcuts. Chat with any LLM, at API cost, without the noise.",
   "type": "module",
   "license": "MIT",
@@ -45,6 +45,7 @@
     "@kontekst/dtos"
   ],
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "semantic-release": "^24.2.0"
   }
 }
