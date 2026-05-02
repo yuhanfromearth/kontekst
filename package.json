@@ -4,6 +4,7 @@
   "description": "OpenRouter wrapper with minimal UI and local context management with utility keyboard shortcuts. Chat with any LLM, at API cost, without the noise.",
   "type": "module",
   "license": "MIT",
+  "repository": "github:yuhanfromearth/kontekst",
   "bin": {
     "kontekst": "bin/kontekst.mjs"
   },
