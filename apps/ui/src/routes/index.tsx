@@ -1,7 +1,7 @@
 import KontekstDisplay from "#/components/KontekstDisplay";
 import KontekstLogo from "#/components/KontekstLogo";
-import ConversationHistory from "#/components/ConversationHistory";
 import ConversationDisplay from "#/components/ConversationDisplay";
+import ConversationHistory from "#/components/ConversationHistory";
 import KeyUsageDisplay from "#/components/KeyUsageDisplay";
 import ModelSelector from "#/components/ModelSelector";
 import ThemeToggle from "#/components/ThemeToggle";
@@ -310,7 +310,7 @@ function App() {
       <div className="flex items-center justify-between mb-8 mt-2">
         <KontekstLogo className="ml-2" />
         <div className="flex items-center gap-1">
-          <ConversationDisplay kontekstList={kontekstList} />
+          <ConversationHistory kontekstList={kontekstList} />
           <KeyUsageDisplay />
           <ThemeToggle />
           <button
@@ -426,7 +426,7 @@ function App() {
 
       {messages.length > 0 && (
         <div className="flex-1 min-h-0 overflow-y-auto mt-16">
-          <ConversationHistory messages={messages} />
+          <ConversationDisplay messages={messages} />
         </div>
       )}
     </div>

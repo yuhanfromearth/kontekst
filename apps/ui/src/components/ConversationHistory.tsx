@@ -1,103 +1,124 @@
-import type { Message } from "@kontekst/dtos";
-import MarkdownRenderer from "#/components/MarkdownRenderer";
-import { useEffect, useRef, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { History, X } from "lucide-react";
+import { useState } from "react";
+import { useConversation } from "#/components/ConversationContext";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "#/components/ui/popover";
+import { formatCost } from "#/lib/cost";
+import type { ConversationDto, ConversationSummary } from "@kontekst/dtos";
 
 export default function ConversationHistory({
-  messages,
+  kontekstList,
 }: {
-  messages: Message[];
+  kontekstList: string[];
 }) {
-  const spacerRef = useRef<HTMLDivElement>(null);
-  const lastUserMessageRef = useRef<HTMLDivElement>(null);
-  const lastAssistantMessageRef = useRef<HTMLDivElement>(null);
-  const [spacerHeight, setSpacerHeight] = useState(0);
-  const pendingScrollRef = useRef(false);
+  const { loadConversation, conversationId } = useConversation();
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const kontekstSet = new Set(kontekstList);
 
-  useEffect(() => {
-    const scrollContainer = spacerRef.current?.parentElement?.parentElement;
-    if (!scrollContainer) return;
+  const { data: conversations = [], isLoading } = useQuery<
+    ConversationSummary[]
+  >({
+    queryKey: ["conversations"],
+    queryFn: () => fetch("/api/conversations").then((res) => res.json()),
+    enabled: open,
+  });
 
-    const GAP = 24; // gap-6
+  const { mutate: deleteConversation } = useMutation({
+    mutationFn: (id: string) =>
+      fetch(`/api/conversation?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["conversations"] }),
+  });
 
-    const recalculate = () => {
-      const containerHeight = scrollContainer.clientHeight;
-      const lastMessage = messages[messages.length - 1];
-
-      if (lastMessage?.role === "user") {
-        const userHeight = lastUserMessageRef.current?.clientHeight ?? 0;
-        setSpacerHeight(Math.max(0, containerHeight - userHeight - GAP));
-      } else if (lastMessage?.role === "assistant") {
-        const userHeight = lastUserMessageRef.current?.clientHeight ?? 0;
-        const assistantHeight =
-          lastAssistantMessageRef.current?.clientHeight ?? 0;
-        setSpacerHeight(
-          Math.max(0, containerHeight - userHeight - assistantHeight - GAP * 2),
-        );
-      }
-
-      // Scroll inside recalculate (not in a spacerHeight effect) so it fires even
-      // when spacerHeight doesn't change — e.g. returning from another page where
-      // the container is already the correct size.
-      if (pendingScrollRef.current) {
-        pendingScrollRef.current = false;
-        requestAnimationFrame(() => {
-          lastUserMessageRef.current?.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-          });
-        });
-      }
-    };
-
-    pendingScrollRef.current = true;
-    // rAF ensures DOM heights are available before measuring on first render/remount.
-    const raf = requestAnimationFrame(recalculate);
-
-    const observer = new ResizeObserver(recalculate);
-    observer.observe(scrollContainer);
-    return () => {
-      cancelAnimationFrame(raf);
-      observer.disconnect();
-    };
-  }, [messages.length]);
-
-  const lastUserIdx = messages.findLastIndex(
-    (message: Message) => message.role === "user",
-  );
-  const lastAssistantIdx =
-    messages[messages.length - 1]?.role === "assistant"
-      ? messages.length - 1
-      : -1;
+  const selectConversation = async (id: string) => {
+    const res = await fetch(`/api/conversation?id=${encodeURIComponent(id)}`);
+    if (!res.ok) return;
+    const dto: ConversationDto = await res.json();
+    loadConversation(dto);
+    setOpen(false);
+  };
 
   return (
-    <div className="flex flex-col gap-6">
-      {messages.map((message, index) =>
-        message.role === "user" ? (
-          <div
-            key={index}
-            ref={index === lastUserIdx ? lastUserMessageRef : null}
-            className="flex justify-end"
-          >
-            <div className="bg-muted rounded-2xl px-4 py-2 max-w-[80%] text-base [&_.prose_p]:my-0">
-              <MarkdownRenderer markdownString={message.content} />
-            </div>
-          </div>
-        ) : (
-          <div
-            key={index}
-            ref={index === lastAssistantIdx ? lastAssistantMessageRef : null}
-            className="text-base"
-          >
-            <MarkdownRenderer markdownString={message.content} />
-          </div>
-        ),
-      )}
-      <div
-        aria-hidden="true"
-        ref={spacerRef}
-        style={{ height: spacerHeight }}
-        className="shrink-0"
-      />
-    </div>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+        title="Past conversations"
+      >
+        <History className="size-4" />
+      </PopoverTrigger>
+      <PopoverContent className="w-80 p-2" align="end">
+        <p className="px-2 py-1 text-xs font-semibold tracking-widest text-muted-foreground uppercase">
+          Past conversations
+        </p>
+        <div className="max-h-80 overflow-y-auto flex flex-col gap-0.5 mt-1">
+          {isLoading && (
+            <p className="text-xs text-muted-foreground px-2 py-1.5">
+              Loading...
+            </p>
+          )}
+          {!isLoading && conversations.length === 0 && (
+            <p className="text-xs text-muted-foreground px-2 py-1.5">
+              No past conversations.
+            </p>
+          )}
+          {conversations.map((c) => {
+            const isActive = c.id === conversationId;
+            return (
+              <div
+                key={c.id}
+                className={`group flex items-center rounded ${isActive ? "bg-accent" : ""}`}
+              >
+                <button
+                  type="button"
+                  onClick={() => selectConversation(c.id)}
+                  className="flex-1 min-w-0 text-left px-2 py-1.5 text-sm hover:bg-accent transition-colors rounded"
+                >
+                  <div className="font-medium truncate">
+                    {c.title?.trim() || "Untitled"}
+                  </div>
+                  <div className="text-xs text-muted-foreground flex gap-2 mt-0.5 truncate">
+                    {c.kontekstName && !kontekstSet.has(c.kontekstName) ? (
+                      <span
+                        className="font-mono text-destructive inline-flex items-center gap-0.5"
+                        title="Kontekst no longer exists"
+                      >
+                        {c.kontekstName}
+                        <X className="size-3" />
+                      </span>
+                    ) : (
+                      <span className="font-mono">{c.kontekstName}</span>
+                    )}
+                    <span className="truncate">{c.model}</span>
+                    {c.totalCost > 0 && (
+                      <span className="ml-auto shrink-0 tabular-nums">
+                        {formatCost(c.totalCost)}
+                      </span>
+                    )}
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  title="Delete conversation"
+                  className="mr-1 p-1 rounded text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive transition-colors cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteConversation(c.id);
+                  }}
+                >
+                  <X className="size-3.5" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
