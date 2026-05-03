@@ -6,4 +6,5 @@ export interface ConversationEntry {
   model: string;
   title?: string;
   totalCost?: number;
+  updatedAt?: number;
 }

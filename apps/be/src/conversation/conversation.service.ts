@@ -38,7 +38,13 @@ export class ConversationService {
       // Persist immediately so a failure during the LLM call (e.g. an
       // OpenRouter credit error) doesn't leave the client holding a
       // conversationId that points to nothing on disk.
-      store[id] = { messages: [], kontekstName, model, totalCost: 0 };
+      store[id] = {
+        messages: [],
+        kontekstName,
+        model,
+        totalCost: 0,
+        updatedAt: Date.now(),
+      };
       this.store.write(store);
     }
 
@@ -118,6 +124,7 @@ export class ConversationService {
       conversation.messages.push({ role: 'user', content: message });
       conversation.messages.push({ role: 'assistant', content: accumulated });
       if (resolvedTitle) conversation.title = resolvedTitle;
+      conversation.updatedAt = Date.now();
       this.store.write(store);
 
       yield { type: 'done' };
@@ -140,6 +147,7 @@ export class ConversationService {
         conversation.totalCost = (conversation.totalCost ?? 0) + titleCost;
       }
       if (resolvedTitle) conversation.title = resolvedTitle;
+      conversation.updatedAt = Date.now();
       this.store.write(store);
 
       const messageText = err instanceof Error ? err.message : 'Stream failed';
@@ -149,13 +157,16 @@ export class ConversationService {
 
   listConversations(): ConversationSummary[] {
     const store = this.store.read();
-    return Object.entries(store).map(([id, entry]) => ({
-      id,
-      title: entry.title,
-      kontekstName: entry.kontekstName,
-      model: entry.model,
-      totalCost: entry.totalCost ?? 0,
-    }));
+    return Object.entries(store)
+      .map(([id, entry]) => ({
+        id,
+        title: entry.title,
+        kontekstName: entry.kontekstName,
+        model: entry.model,
+        totalCost: entry.totalCost ?? 0,
+        updatedAt: entry.updatedAt ?? 0,
+      }))
+      .sort((a, b) => b.updatedAt - a.updatedAt);
   }
 
   getConversation(id: string): ConversationDto {
@@ -168,6 +179,7 @@ export class ConversationService {
       model: entry.model,
       messages: entry.messages,
       totalCost: entry.totalCost ?? 0,
+      updatedAt: entry.updatedAt ?? 0,
     };
   }
 

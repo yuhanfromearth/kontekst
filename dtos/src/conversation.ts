@@ -6,6 +6,7 @@ export interface ConversationSummary {
   kontekstName?: string;
   model: string;
   totalCost: number;
+  updatedAt: number;
 }
 
 export interface ConversationDto extends ConversationSummary {

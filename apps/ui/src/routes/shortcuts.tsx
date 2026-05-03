@@ -87,9 +87,14 @@ function ShortcutsPage() {
           <ShortcutRow
             title="Send message"
             description="Submit your prompt without reaching for the mouse."
+            keys={<Kbd>Enter</Kbd>}
+          />
+          <ShortcutRow
+            title="Newline in prompt"
+            description="Insert a line break without submitting."
             keys={
               <>
-                <Kbd>{modGlyph}</Kbd>
+                <Kbd>Shift</Kbd>
                 <span className="text-muted-foreground text-sm">+</span>
                 <Kbd>Enter</Kbd>
               </>

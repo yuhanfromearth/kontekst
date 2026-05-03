@@ -15,18 +15,27 @@ export class ModelService {
 
   constructor(private readonly keyService: KeyService) {}
 
-  async getModels(search?: string, limit = 10): Promise<ModelDto[]> {
+  async getModels(
+    search?: string,
+    limit = 10,
+    free = false,
+  ): Promise<ModelDto[]> {
     const all = (await this.fetchCatalog()).map(toModelDto);
 
-    const filtered = search
-      ? all.filter((m) => {
-          const query = search.toLowerCase();
-          return (
-            m.id.toLowerCase().includes(query) ||
-            m.name.toLowerCase().includes(query)
-          );
-        })
-      : all;
+    const query = search?.toLowerCase();
+    const filtered = all.filter((m) => {
+      if (free && !(m.pricing.prompt === '0' && m.pricing.completion === '0')) {
+        return false;
+      }
+      if (
+        query &&
+        !m.id.toLowerCase().includes(query) &&
+        !m.name.toLowerCase().includes(query)
+      ) {
+        return false;
+      }
+      return true;
+    });
 
     return filtered.slice(0, limit);
   }
@@ -64,5 +73,6 @@ function toModelDto(m: OpenRouterModel): ModelDto {
     description: m.description ?? null,
     contextLength: m.context_length,
     pricing: { prompt: m.pricing.prompt, completion: m.pricing.completion },
+    expirationDate: m.expiration_date ?? null,
   };
 }

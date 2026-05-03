@@ -1,7 +1,7 @@
 import KontekstDisplay from "#/components/KontekstDisplay";
 import KontekstLogo from "#/components/KontekstLogo";
-import ConversationHistory from "#/components/ConversationHistory";
 import ConversationDisplay from "#/components/ConversationDisplay";
+import ConversationHistory from "#/components/ConversationHistory";
 import KeyUsageDisplay from "#/components/KeyUsageDisplay";
 import ModelSelector from "#/components/ModelSelector";
 import ThemeToggle from "#/components/ThemeToggle";
@@ -17,12 +17,10 @@ import { formatCost } from "#/lib/cost";
 import { formatTokens } from "#/lib/tokens";
 import { useEffect, useRef, useState } from "react";
 import { useConversation } from "#/components/ConversationContext";
-import { useIsMac } from "#/lib/platform";
 
 export const Route = createFileRoute("/")({ component: App });
 
 function App() {
-  const isMac = useIsMac();
   const [input, setInput] = useState("");
   const {
     messages,
@@ -310,7 +308,7 @@ function App() {
       <div className="flex items-center justify-between mb-8 mt-2">
         <KontekstLogo className="ml-2" />
         <div className="flex items-center gap-1">
-          <ConversationDisplay kontekstList={kontekstList} />
+          <ConversationHistory kontekstList={kontekstList} />
           <KeyUsageDisplay />
           <ThemeToggle />
           <button
@@ -377,8 +375,7 @@ function App() {
             setChatError(undefined);
           }}
           onKeyDown={(e) => {
-            const mod = isMac ? e.metaKey : e.ctrlKey;
-            if (mod && e.key === "Enter" && input.trim() !== "") {
+            if (e.key === "Enter" && !e.shiftKey && input.trim() !== "") {
               e.preventDefault();
               submit();
             }
@@ -391,7 +388,7 @@ function App() {
             type="submit"
             disabled={isStreaming || showNoKey}
           >
-            Send {isMac !== null && <Kbd>{isMac ? "⌘" : "ctrl"} + Enter</Kbd>}
+            Send <Kbd>Enter</Kbd>
           </Button>
           <Button
             className="hover:cursor-pointer"
@@ -426,7 +423,7 @@ function App() {
 
       {messages.length > 0 && (
         <div className="flex-1 min-h-0 overflow-y-auto mt-16">
-          <ConversationHistory messages={messages} />
+          <ConversationDisplay messages={messages} />
         </div>
       )}
     </div>

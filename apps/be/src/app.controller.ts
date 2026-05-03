@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   HttpCode,
+  ParseBoolPipe,
   ParseIntPipe,
   Patch,
   Post,
@@ -148,8 +149,9 @@ export class AppController {
   getModels(
     @Query('search') search?: string,
     @Query('limit', ParseIntPipe) limit = 10,
+    @Query('free', new ParseBoolPipe({ optional: true })) free?: boolean,
   ): Promise<ModelDto[]> {
-    return this.modelService.getModels(search, limit);
+    return this.modelService.getModels(search, limit, free);
   }
 
   @Get('kontekst')
