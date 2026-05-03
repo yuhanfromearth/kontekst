@@ -6,6 +6,7 @@ export interface OpenRouterModel {
   description?: string;
   context_length: number;
   pricing: ModelPricing;
+  expiration_date?: string | null;
 }
 
 export interface OpenRouterModelsResponse {

@@ -8,7 +8,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "#/components/ui/popover";
-import { Star } from "lucide-react";
+import { ExternalLink, Star } from "lucide-react";
 
 interface ModelSelectorProps {
   selectedModel: string;
@@ -21,6 +21,15 @@ function formatPrice(perToken: string): string {
   return `$${usd.toFixed(2)}/M`;
 }
 
+function isFree(model: ModelDto): boolean {
+  return model.pricing.prompt === "0" && model.pricing.completion === "0";
+}
+
+function daysUntil(iso: string): number {
+  const target = new Date(iso).getTime();
+  return Math.ceil((target - Date.now()) / 86_400_000);
+}
+
 export default function ModelSelector({
   selectedModel,
   selectedModelDto,
@@ -29,6 +38,7 @@ export default function ModelSelector({
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [freeOnly, setFreeOnly] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -37,11 +47,17 @@ export default function ModelSelector({
   }, [search]);
 
   const { data: models } = useQuery<ModelDto[]>({
-    queryKey: ["models", debouncedSearch],
-    queryFn: () =>
-      fetch(
-        `/api/models?search=${encodeURIComponent(debouncedSearch)}&limit=20`,
-      ).then((res) => res.json()),
+    queryKey: ["models", debouncedSearch, freeOnly],
+    queryFn: () => {
+      const params = new URLSearchParams({
+        search: debouncedSearch,
+        limit: "20",
+      });
+      if (freeOnly) params.set("free", "true");
+      return fetch(`/api/models?${params.toString()}`).then((res) =>
+        res.json(),
+      );
+    },
     enabled: open,
   });
 
@@ -79,16 +95,39 @@ export default function ModelSelector({
         {label}
       </PopoverTrigger>
       <PopoverContent className="w-96 p-2" align="start">
-        <Input
-          placeholder="Search models..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          autoFocus
-          className="mb-2"
-        />
+        <div className="flex gap-2 mb-2">
+          <Input
+            placeholder="Search models..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            autoFocus
+            className="flex-1"
+          />
+          <button
+            type="button"
+            aria-pressed={freeOnly}
+            onClick={() => setFreeOnly((v) => !v)}
+            className={`text-xs px-2 rounded border transition-colors ${
+              freeOnly
+                ? "bg-accent text-foreground border-transparent"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Free
+          </button>
+        </div>
         <div className="max-h-60 overflow-y-auto flex flex-col gap-0.5">
           {displayModels.map((model) => {
             const isDefault = model.id === defaultModel?.id;
+            const days = model.expirationDate
+              ? daysUntil(model.expirationDate)
+              : null;
+            const expiryLabel =
+              days !== null && days > 0
+                ? isFree(model)
+                  ? `free for ${days}d`
+                  : `expires in ${days}d`
+                : null;
             return (
               <div
                 key={model.id}
@@ -107,8 +146,23 @@ export default function ModelSelector({
                     <span>{formatTokens(model.contextLength)} ctx</span>
                     <span>in {formatPrice(model.pricing.prompt)}</span>
                     <span>out {formatPrice(model.pricing.completion)}</span>
+                    {expiryLabel && (
+                      <span className="text-amber-600 dark:text-amber-400">
+                        {expiryLabel}
+                      </span>
+                    )}
                   </div>
                 </button>
+                <a
+                  href={`https://openrouter.ai/${model.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="View on OpenRouter"
+                  className="mr-1 p-1 rounded text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-foreground transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ExternalLink className="size-3.5" />
+                </a>
                 <button
                   type="button"
                   title={isDefault ? "Default model" : "Set as default"}
@@ -128,7 +182,7 @@ export default function ModelSelector({
           })}
           {displayModels.length === 0 && (
             <p className="text-xs text-muted-foreground px-2 py-1.5">
-              No models found.
+              {freeOnly ? "No free models match." : "No models found."}
             </p>
           )}
         </div>

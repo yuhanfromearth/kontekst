@@ -17,4 +17,5 @@ export interface ModelDto {
   description: string | null;
   contextLength: number;
   pricing: ModelPricing;
+  expirationDate: string | null;
 }
