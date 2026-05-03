@@ -17,12 +17,10 @@ import { formatCost } from "#/lib/cost";
 import { formatTokens } from "#/lib/tokens";
 import { useEffect, useRef, useState } from "react";
 import { useConversation } from "#/components/ConversationContext";
-import { useIsMac } from "#/lib/platform";
 
 export const Route = createFileRoute("/")({ component: App });
 
 function App() {
-  const isMac = useIsMac();
   const [input, setInput] = useState("");
   const {
     messages,
@@ -377,8 +375,7 @@ function App() {
             setChatError(undefined);
           }}
           onKeyDown={(e) => {
-            const mod = isMac ? e.metaKey : e.ctrlKey;
-            if (mod && e.key === "Enter" && input.trim() !== "") {
+            if (e.key === "Enter" && !e.shiftKey && input.trim() !== "") {
               e.preventDefault();
               submit();
             }
@@ -391,7 +388,7 @@ function App() {
             type="submit"
             disabled={isStreaming || showNoKey}
           >
-            Send {isMac !== null && <Kbd>{isMac ? "⌘" : "ctrl"} + Enter</Kbd>}
+            Send <Kbd>Enter</Kbd>
           </Button>
           <Button
             className="hover:cursor-pointer"
