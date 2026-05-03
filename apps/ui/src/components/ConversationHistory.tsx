@@ -118,7 +118,7 @@ export default function ConversationHistory({
             autoFocus
           />
         </div>
-        <div className="max-h-80 overflow-y-auto flex flex-col gap-0.5">
+        <div className="max-h-80 overflow-y-auto flex flex-col gap-0.5 p-1 -m-1">
           {isLoading && (
             <p className="text-xs text-muted-foreground px-2 py-1.5">
               Loading...
@@ -129,13 +129,11 @@ export default function ConversationHistory({
               No past conversations.
             </p>
           )}
-          {!isLoading &&
-            conversations.length > 0 &&
-            filtered.length === 0 && (
-              <p className="text-xs text-muted-foreground px-2 py-1.5">
-                No matches.
-              </p>
-            )}
+          {!isLoading && conversations.length > 0 && filtered.length === 0 && (
+            <p className="text-xs text-muted-foreground px-2 py-1.5">
+              No matches.
+            </p>
+          )}
           {filtered.map((c) => {
             const isActive = c.id === conversationId;
             return (
