@@ -8,13 +8,12 @@ import ThemeToggle from "#/components/ThemeToggle";
 import { Button } from "#/components/ui/button";
 import { Kbd } from "#/components/ui/kbd";
 import { Textarea } from "#/components/ui/textarea";
-import type { KeyListItem, ModelDto, StreamEvent } from "@kontekst/dtos";
-import { StreamEventSchema } from "@kontekst/dtos";
+import type { KeyListItem, ModelDto } from "@kontekst/dtos";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { createParser } from "eventsource-parser";
 import { formatCost } from "#/lib/cost";
 import { formatTokens } from "#/lib/tokens";
+import { streamChat } from "#/lib/chatStream";
 import { useEffect, useRef, useState } from "react";
 import { useConversation } from "#/components/ConversationContext";
 
@@ -102,7 +101,7 @@ function App() {
   const [chatError, setChatError] = useState<string | undefined>();
 
   const runStream = async (payload: {
-    userMessage: string;
+    message: string;
     conversationId?: string;
     kontekstName?: string;
     model?: string;
@@ -112,143 +111,54 @@ function App() {
     setIsStreaming(true);
 
     let assistantStarted = false;
-    let buffer = "";
-    let animatorTimer: ReturnType<typeof setTimeout> | null = null;
-    let drainResolve: () => void = () => {};
-    const drainPromise = new Promise<void>((res) => {
-      drainResolve = res;
-    });
-
-    const stopAnimator = () => {
-      if (animatorTimer !== null) {
-        clearTimeout(animatorTimer);
-        animatorTimer = null;
-      }
-    };
-
-    const flushPiece = (piece: string) => {
-      setMessages((prev) => {
-        const next = prev.slice();
-        const last = next[next.length - 1];
-        next[next.length - 1] = { ...last, content: last.content + piece };
-        return next;
-      });
-    };
-
-    const tick = () => {
-      animatorTimer = null;
-      if (buffer.length === 0) {
-        drainResolve();
-        return;
-      }
-
-      const match = buffer.match(/^\s*\S+\s*/);
-      const piece = match ? match[0] : buffer;
-      buffer = buffer.slice(piece.length);
-      flushPiece(piece);
-
-      if (buffer.length === 0) {
-        drainResolve();
-        return;
-      }
-      // Adaptive cadence: target ~400ms drain regardless of backlog.
-      const remainingWords = buffer.split(/\s+/).filter(Boolean).length || 1;
-      const delay = Math.max(10, Math.min(45, 400 / remainingWords));
-      animatorTimer = setTimeout(tick, delay);
-    };
-
-    const enqueue = (delta: string) => {
-      if (!assistantStarted) {
-        assistantStarted = true;
-        setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
-      }
-      buffer += delta;
-      if (animatorTimer === null) animatorTimer = setTimeout(tick, 0);
-    };
-
     const rollback = () => {
-      stopAnimator();
-      buffer = "";
-      drainResolve();
       setMessages((prev) =>
         assistantStarted ? prev.slice(0, -2) : prev.slice(0, -1),
       );
     };
 
-    const handleEvent = (evt: StreamEvent) => {
-      switch (evt.type) {
-        case "meta":
-          setConversationId(evt.conversationId);
-          queryClient.invalidateQueries({ queryKey: ["conversations"] });
-          break;
-        case "delta":
-          enqueue(evt.content);
-          break;
-        case "title":
-          queryClient.invalidateQueries({ queryKey: ["conversations"] });
-          break;
-        case "usage":
-          setTokenUsage(evt.usage);
-          setConversationCost((prev) => prev + evt.usage.cost);
-          queryClient.invalidateQueries({ queryKey: ["keyInfo"] });
-          queryClient.invalidateQueries({ queryKey: ["conversations"] });
-          break;
-        case "done":
-          break;
-        case "error":
-          setChatError(evt.message);
-          rollback();
-          break;
-      }
-    };
-
-    const parser = createParser({
-      onEvent: (e) => {
-        try {
-          const parsed = StreamEventSchema.parse(JSON.parse(e.data));
-          handleEvent(parsed);
-        } catch {
-          // ignore malformed frame
-        }
-      },
-    });
-
     try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conversationId: payload.conversationId,
-          kontekstName: payload.kontekstName,
-          message: payload.userMessage,
-          model: payload.model,
-        }),
-        signal: controller.signal,
-      });
-
-      if (!response.ok || !response.body) {
-        throw new Error(`Request failed (${response.status})`);
+      for await (const evt of streamChat(payload, controller.signal)) {
+        switch (evt.type) {
+          case "piece":
+            if (!assistantStarted) {
+              assistantStarted = true;
+              setMessages((prev) => [
+                ...prev,
+                { role: "assistant", content: "" },
+              ]);
+            }
+            setMessages((prev) => {
+              const next = prev.slice();
+              const last = next[next.length - 1];
+              next[next.length - 1] = {
+                ...last,
+                content: last.content + evt.text,
+              };
+              return next;
+            });
+            break;
+          case "meta":
+            setConversationId(evt.conversationId);
+            queryClient.invalidateQueries({ queryKey: ["conversations"] });
+            break;
+          case "title":
+            queryClient.invalidateQueries({ queryKey: ["conversations"] });
+            break;
+          case "usage":
+            setTokenUsage(evt.usage);
+            setConversationCost((prev) => prev + evt.usage.cost);
+            queryClient.invalidateQueries({ queryKey: ["keyInfo"] });
+            queryClient.invalidateQueries({ queryKey: ["conversations"] });
+            break;
+          case "error":
+            setChatError(evt.message);
+            rollback();
+            break;
+          case "done":
+            break;
+        }
       }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        parser.feed(decoder.decode(value, { stream: true }));
-      }
-
-      // Wait for the animator to flush the remaining buffer before unblocking input.
-      if (buffer.length > 0 || animatorTimer !== null) {
-        await drainPromise;
-      } else {
-        drainResolve();
-      }
-    } catch (err) {
-      if (controller.signal.aborted) return;
-      const messageText = err instanceof Error ? err.message : "Stream failed";
-      setChatError(messageText);
-      rollback();
     } finally {
       if (abortRef.current === controller) abortRef.current = null;
       setIsStreaming(false);
@@ -289,7 +199,7 @@ function App() {
     setInput("");
     setChatError(undefined);
     void runStream({
-      userMessage,
+      message: userMessage,
       conversationId,
       kontekstName: selectedKontekst,
       model: selectedModel || undefined,
