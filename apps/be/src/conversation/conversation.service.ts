@@ -192,6 +192,10 @@ export class ConversationService {
     this.store.write(store);
   }
 
+  deleteAllConversations(): void {
+    this.store.write({});
+  }
+
   private findEntry(store: ConversationStore, id: string): ConversationEntry {
     const conversation = store[id];
     if (!conversation) {
