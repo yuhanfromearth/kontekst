@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { History, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { History, Trash2, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useConversation } from "#/components/ConversationContext";
 import { Input } from "#/components/ui/input";
 import {
@@ -89,6 +89,36 @@ export default function ConversationHistory({
       queryClient.invalidateQueries({ queryKey: ["conversations"] }),
   });
 
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
+  const confirmRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!confirmDeleteAll) return;
+    const handler = (e: MouseEvent) => {
+      if (confirmRef.current && !confirmRef.current.contains(e.target as Node)) {
+        setConfirmDeleteAll(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [confirmDeleteAll]);
+
+  useEffect(() => {
+    if (!open) setConfirmDeleteAll(false);
+  }, [open]);
+
+  const { mutate: deleteAllConversations, isPending: isDeletingAll } =
+    useMutation({
+      mutationFn: async () => {
+        const res = await fetch("/api/conversations", { method: "DELETE" });
+        if (!res.ok) throw new Error("Failed to delete conversations");
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["conversations"] });
+        setConfirmDeleteAll(false);
+      },
+    });
+
   const selectConversation = async (id: string) => {
     const res = await fetch(`/api/conversation?id=${encodeURIComponent(id)}`);
     if (!res.ok) return;
@@ -106,9 +136,35 @@ export default function ConversationHistory({
         <History className="size-4" />
       </PopoverTrigger>
       <PopoverContent className="w-80 p-2" align="end">
-        <p className="px-2 py-1 text-xs font-semibold tracking-widest text-muted-foreground uppercase">
-          Past conversations
-        </p>
+        <div className="flex items-center justify-between px-2 py-1">
+          <p className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
+            Past conversations
+          </p>
+          {conversations.length > 0 && (
+            <div ref={confirmRef}>
+              {confirmDeleteAll ? (
+                <button
+                  type="button"
+                  onClick={() => deleteAllConversations()}
+                  disabled={isDeletingAll}
+                  className="text-xs text-destructive hover:underline cursor-pointer disabled:opacity-50"
+                >
+                  Confirm delete all
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmDeleteAll(true)}
+                  title="Delete all conversations"
+                  aria-label="Delete all conversations"
+                  className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-accent transition-colors cursor-pointer"
+                >
+                  <Trash2 className="size-3.5" />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
         <div className="px-2 pt-1 pb-2">
           <Input
             type="search"

@@ -107,6 +107,12 @@ export class AppController {
     this.conversationService.deleteConversation(id);
   }
 
+  @Delete('conversations')
+  @HttpCode(204)
+  deleteAllConversations(): void {
+    this.conversationService.deleteAllConversations();
+  }
+
   @Get('models/default')
   getDefaultModel(): Promise<ModelDto> {
     return this.modelService.getDefaultModel();
