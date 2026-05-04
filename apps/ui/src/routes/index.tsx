@@ -6,7 +6,6 @@ import KeyUsageDisplay from "#/components/KeyUsageDisplay";
 import ModelSelector from "#/components/ModelSelector";
 import ThemeToggle from "#/components/ThemeToggle";
 import { Button } from "#/components/ui/button";
-import { Kbd } from "#/components/ui/kbd";
 import { Textarea } from "#/components/ui/textarea";
 import type { KeyListItem, ModelDto } from "@kontekst/dtos";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -14,6 +13,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { formatCost } from "#/lib/cost";
 import { formatTokens } from "#/lib/tokens";
 import { streamChat } from "#/lib/chatStream";
+import { isModifierEvent } from "#/lib/platform";
 import { useEffect, useRef, useState } from "react";
 import { useConversation } from "#/components/ConversationContext";
 
@@ -42,6 +42,8 @@ function App() {
   } = useConversation();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
   const [isStreaming, setIsStreaming] = useState(false);
   const queryClient = useQueryClient();
 
@@ -85,6 +87,12 @@ function App() {
         textareaRef.current?.blur();
       }
 
+      if (isModifierEvent(e) && e.shiftKey && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        if (messagesRef.current.length > 0) newChat();
+        return;
+      }
+
       // skip if already typing in an input
       if (document.activeElement === textareaRef.current) return;
 
@@ -99,6 +107,15 @@ function App() {
   }, []);
 
   const [chatError, setChatError] = useState<string | undefined>();
+
+  const newChat = () => {
+    cancelStream();
+    setMessages([]);
+    setConversationId(undefined);
+    setTokenUsage(undefined);
+    setConversationCost(0);
+    setChatError(undefined);
+  };
 
   const runStream = async (payload: {
     message: string;
@@ -298,21 +315,14 @@ function App() {
             type="submit"
             disabled={isStreaming || showNoKey}
           >
-            Send <Kbd>Enter</Kbd>
+            Send
           </Button>
           <Button
             className="hover:cursor-pointer"
             type="button"
             variant="outline"
             disabled={messages.length === 0}
-            onClick={() => {
-              cancelStream();
-              setMessages([]);
-              setConversationId(undefined);
-              setTokenUsage(undefined);
-              setConversationCost(0);
-              setChatError(undefined);
-            }}
+            onClick={newChat}
           >
             New Chat
           </Button>

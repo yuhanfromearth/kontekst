@@ -100,6 +100,19 @@ function ShortcutsPage() {
               </>
             }
           />
+          <ShortcutRow
+            title="New chat"
+            description="Cancel any in-flight stream and clear the current conversation."
+            keys={
+              <>
+                <Kbd>{modGlyph}</Kbd>
+                <span className="text-muted-foreground text-sm">+</span>
+                <Kbd>Shift</Kbd>
+                <span className="text-muted-foreground text-sm">+</span>
+                <Kbd>K</Kbd>
+              </>
+            }
+          />
         </Section>
 
         <Section title="Konteksts">
