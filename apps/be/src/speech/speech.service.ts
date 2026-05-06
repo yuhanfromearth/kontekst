@@ -28,8 +28,19 @@ export class SpeechService {
       clips: [],
     }),
   );
+  private defaultModelId: string | null = null;
 
   constructor(private readonly keyService: KeyService) {}
+
+  setDefaultModel(modelId: string): void {
+    this.defaultModelId = modelId;
+  }
+
+  async getDefaultModel(): Promise<TtsModel | null> {
+    if (!this.defaultModelId) return null;
+    const all = await this.listModels();
+    return all.find((m) => m.id === this.defaultModelId) ?? null;
+  }
 
   private get audioDir(): string {
     const dir = path.join(process.env.KONTEKST_FOLDER ?? '', 'speech-audio');

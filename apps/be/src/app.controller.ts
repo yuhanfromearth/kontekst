@@ -27,6 +27,7 @@ import { DeleteShortcutDto, SaveShortcutDto } from './dtos/shortcut.dto.js';
 import { ChatDto } from './dtos/chat.dto.js';
 import {
   SaveVoicePrefDto,
+  SetDefaultTtsModelDto,
   SetDefaultVoiceDto,
   SpeechDto,
 } from './dtos/speech.dto.js';
@@ -269,6 +270,17 @@ export class AppController {
   @Get('speech/models')
   listTtsModels(): Promise<TtsModel[]> {
     return this.speechService.listModels();
+  }
+
+  @Get('speech/models/default')
+  getDefaultTtsModel(): Promise<TtsModel | null> {
+    return this.speechService.getDefaultModel();
+  }
+
+  @Post('speech/models/default')
+  @HttpCode(204)
+  setDefaultTtsModel(@Body() body: SetDefaultTtsModelDto): void {
+    this.speechService.setDefaultModel(body.modelId);
   }
 
   @Get('speech/voice-prefs')

@@ -29,6 +29,7 @@ import ModeToggle from "#/components/ModeToggle";
 import { useEffect, useRef, useState } from "react";
 import {
   deleteClip as apiDeleteClip,
+  getDefaultTtsModel,
   listClips,
   listTtsModels,
   listVoicePrefs,
@@ -74,6 +75,11 @@ function SpeechPage() {
     queryFn: listTtsModels,
     enabled: hasActiveKey,
   });
+  const { data: defaultTtsModel } = useQuery<TtsModel | null>({
+    queryKey: ["tts-models", "default"],
+    queryFn: getDefaultTtsModel,
+    enabled: hasActiveKey,
+  });
   const { data: clips = [], isPending: clipsPending } = useQuery<SpeechClip[]>({
     queryKey: ["speech-clips"],
     queryFn: listClips,
@@ -96,12 +102,13 @@ function SpeechPage() {
   const [error, setError] = useState<string | undefined>();
 
   useEffect(() => {
-    if (!selectedModel && models.length > 0) {
-      const stored = loadPref<string | null>("model-id", null);
-      const found = models.find((m) => m.id === stored) ?? models[0];
-      setSelectedModel(found);
-    }
-  }, [models, selectedModel]);
+    if (selectedModel) return;
+    if (models.length === 0) return;
+    const fromDefault = defaultTtsModel
+      ? models.find((m) => m.id === defaultTtsModel.id)
+      : undefined;
+    setSelectedModel(fromDefault ?? models[0]);
+  }, [models, selectedModel, defaultTtsModel]);
 
   // When the model changes (or first loads with prefs), pick a voice. Prefer
   // the per-model default voice, then the persisted choice if still supported,
@@ -131,9 +138,6 @@ function SpeechPage() {
     lastResolvedModelId.current = selectedModel.id;
   }, [selectedModel, voice, voicePrefs]);
 
-  useEffect(() => {
-    if (selectedModel) savePref("model-id", selectedModel.id);
-  }, [selectedModel]);
   useEffect(() => savePref("voice", voice), [voice]);
   useEffect(() => savePref("format", format), [format]);
   useEffect(() => savePref("speed", speed), [speed]);

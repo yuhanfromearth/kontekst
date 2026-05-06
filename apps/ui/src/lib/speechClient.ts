@@ -45,6 +45,21 @@ export async function listTtsModels(): Promise<TtsModel[]> {
   return res.json();
 }
 
+export async function getDefaultTtsModel(): Promise<TtsModel | null> {
+  const res = await fetch("/api/speech/models/default");
+  if (!res.ok) throw new Error(`Failed to load default TTS model (${res.status})`);
+  return res.json();
+}
+
+export async function setDefaultTtsModel(modelId: string): Promise<void> {
+  const res = await fetch("/api/speech/models/default", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ modelId }),
+  });
+  if (!res.ok) throw new Error(`Failed to set default TTS model (${res.status})`);
+}
+
 export function clipAudioUrl(id: string): string {
   return `/api/speech/clips/${id}/audio`;
 }
