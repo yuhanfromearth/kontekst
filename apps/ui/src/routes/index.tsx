@@ -7,6 +7,7 @@ import ModelSelector from "#/components/ModelSelector";
 import ThemeToggle from "#/components/ThemeToggle";
 import { Button } from "#/components/ui/button";
 import { Textarea } from "#/components/ui/textarea";
+import ModeToggle from "#/components/ModeToggle";
 import type { KeyListItem, ModelDto } from "@kontekst/dtos";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -236,6 +237,7 @@ function App() {
         <KontekstLogo className="ml-2" />
         <div className="flex items-center gap-1">
           <ConversationHistory kontekstList={kontekstList} />
+          <ModeToggle mode="chat" />
           <KeyUsageDisplay />
           <ThemeToggle />
           <button

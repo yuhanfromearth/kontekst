@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { Kbd } from "#/components/ui/kbd";
 import { ArrowLeft } from "lucide-react";
 import { useEffect } from "react";
@@ -45,23 +45,27 @@ function Section({ title, children }: SectionProps) {
 }
 
 function ShortcutsPage() {
-  const navigate = useNavigate();
+  const router = useRouter();
+  const goBack = () => {
+    if (router.history.length > 1) router.history.back();
+    else router.navigate({ to: "/" });
+  };
   const isMac = useIsMac();
   const modGlyph = isMac ? "⌘" : "ctrl";
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") navigate({ to: "/" });
+      if (e.key === "Escape") goBack();
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [navigate]);
+  }, []);
 
   return (
     <div className="flex-1 overflow-y-auto px-1">
       <button
         type="button"
-        onClick={() => navigate({ to: "/" })}
+        onClick={goBack}
         className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6 -ml-0.5"
       >
         <ArrowLeft className="size-4" />
@@ -152,6 +156,37 @@ function ShortcutsPage() {
                 <Kbd>{modGlyph}</Kbd>
                 <span className="text-muted-foreground text-sm">+</span>
                 <Kbd>Enter</Kbd>
+              </>
+            }
+          />
+        </Section>
+
+        <Section title="Speech">
+          <ShortcutRow
+            title="Switch voice"
+            description="Activate a voice by its assigned shortcut on the speech page. Set per voice in the voice editor."
+            keys={
+              <>
+                <Kbd>a</Kbd>
+                <span className="text-muted-foreground text-sm">/</span>
+                <Kbd>a</Kbd>
+                <span className="text-muted-foreground text-sm">+</span>
+                <Kbd>b</Kbd>
+                <span className="text-muted-foreground text-sm">/</span>
+                <Kbd>{modGlyph}</Kbd>
+                <span className="text-muted-foreground text-sm">+</span>
+                <Kbd>a</Kbd>
+              </>
+            }
+          />
+          <ShortcutRow
+            title="Edit voice"
+            description={`Hold ${modGlyph} and click any voice badge to open its editor (name, shortcut, default).`}
+            keys={
+              <>
+                <Kbd>{modGlyph}</Kbd>
+                <span className="text-muted-foreground text-sm">+</span>
+                <Kbd>click</Kbd>
               </>
             }
           />

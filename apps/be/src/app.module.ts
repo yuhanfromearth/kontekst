@@ -12,6 +12,8 @@ import { KontekstModule } from './kontekst/kontekst.module.js';
 import { ConversationModule } from './conversation/conversation.module.js';
 import { KeyModule } from './key/key.module.js';
 import { ModelModule } from './model/model.module.js';
+import { SpeechModule } from './speech/speech.module.js';
+import { VoicePrefModule } from './voice-pref/voice-pref.module.js';
 
 const clientRoot = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -33,6 +35,8 @@ const clientRoot = join(
     ConversationModule,
     KeyModule,
     ModelModule,
+    SpeechModule,
+    VoicePrefModule,
   ],
   controllers: [AppController],
   providers: [
