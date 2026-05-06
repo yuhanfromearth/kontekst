@@ -4,7 +4,6 @@ import ThemeToggle from "#/components/ThemeToggle";
 import SpeechModeChip from "#/components/SpeechModeChip";
 import TtsModelSelector from "#/components/TtsModelSelector";
 import VoiceBadges from "#/components/VoiceBadges";
-import FormatToggle from "#/components/FormatToggle";
 import SpeedControl from "#/components/SpeedControl";
 import SpeechActivePlayer from "#/components/SpeechActivePlayer";
 import SpeechHistory from "#/components/SpeechHistory";
@@ -15,7 +14,6 @@ import {
   SPEECH_MAX_CHARS,
   type KeyListItem,
   type SpeechClip,
-  type SpeechFormat,
   type TtsModel,
   type VoicePrefsForModel,
 } from "@kontekst/dtos";
@@ -93,9 +91,6 @@ function SpeechPage() {
       enabled: !!selectedModel,
     });
   const [voice, setVoice] = useState<string>(() => loadPref("voice", ""));
-  const [format, setFormat] = useState<SpeechFormat>(() =>
-    loadPref<SpeechFormat>("format", "mp3"),
-  );
   const [speed, setSpeed] = useState<number>(() => loadPref("speed", 1.0));
   const [text, setText] = useState("");
   const [activeClip, setActiveClip] = useState<SpeechClip | null>(null);
@@ -139,7 +134,6 @@ function SpeechPage() {
   }, [selectedModel, voice, voicePrefs]);
 
   useEffect(() => savePref("voice", voice), [voice]);
-  useEffect(() => savePref("format", format), [format]);
   useEffect(() => savePref("speed", speed), [speed]);
 
   useEffect(() => {
@@ -166,7 +160,6 @@ function SpeechPage() {
         input: text.trim(),
         model: selectedModel.id,
         voice,
-        response_format: format,
         ...(supportsSpeed ? { speed } : {}),
       });
     },
@@ -277,14 +270,11 @@ function SpeechPage() {
       />
 
       <div className="mt-2.5 flex items-center justify-between gap-3 flex-wrap px-1">
-        <div className="flex items-center gap-3.5">
-          <FormatToggle value={format} onChange={setFormat} />
-          <SpeedControl
-            value={speed}
-            onChange={setSpeed}
-            disabled={!supportsSpeed}
-          />
-        </div>
+        <SpeedControl
+          value={speed}
+          onChange={setSpeed}
+          disabled={!supportsSpeed}
+        />
         {!supportsSpeed && (
           <span className="text-[0.7rem] text-muted-foreground">
             speed unsupported by this provider

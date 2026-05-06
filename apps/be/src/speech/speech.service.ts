@@ -1,12 +1,7 @@
 import { HttpException, Injectable } from '@nestjs/common';
 import fs from 'node:fs';
 import path from 'node:path';
-import type {
-  SpeechClip,
-  SpeechFormat,
-  SpeechRequest,
-  TtsModel,
-} from '@kontekst/dtos';
+import type { SpeechClip, SpeechRequest, TtsModel } from '@kontekst/dtos';
 import { JsonStore } from '../common/json-store.js';
 import { KeyService } from '../key/key.service.js';
 import type {
@@ -49,8 +44,8 @@ export class SpeechService {
     return dir;
   }
 
-  private audioPath(id: string, format: SpeechFormat): string {
-    return path.join(this.audioDir, `${id}.${format}`);
+  private audioPath(id: string): string {
+    return path.join(this.audioDir, `${id}.mp3`);
   }
 
   private estimateDuration(text: string, speed: number | null): number {
@@ -96,14 +91,13 @@ export class SpeechService {
   }
 
   async synthesize(req: SpeechRequest): Promise<SpeechClip> {
-    const format: SpeechFormat = req.response_format ?? 'mp3';
     const speed = req.speed ?? null;
 
     const body: Record<string, unknown> = {
       input: req.input,
       model: req.model,
       voice: req.voice,
-      response_format: format,
+      response_format: 'mp3',
     };
     if (speed !== null) body.speed = speed;
 
@@ -125,25 +119,21 @@ export class SpeechService {
     }
 
     const raw = Buffer.from(await response.arrayBuffer());
-    let bytes: Uint8Array = raw;
-    let durationSec = this.estimateDuration(req.input, speed);
-    if (format === 'mp3') {
-      const cleaned = cleanMp3(raw);
-      bytes = cleaned.buffer;
-      if (cleaned.durationSec > 0) {
-        durationSec = Math.round(cleaned.durationSec * 10) / 10;
-      }
-    }
+    const cleaned = cleanMp3(raw);
+    const durationSec =
+      cleaned.durationSec > 0
+        ? Math.round(cleaned.durationSec * 10) / 10
+        : this.estimateDuration(req.input, speed);
 
     const id = crypto.randomUUID();
-    fs.writeFileSync(this.audioPath(id, format), bytes);
+    fs.writeFileSync(this.audioPath(id), cleaned.buffer);
 
     const clip: SpeechClip = {
       id,
       text: req.input,
       voice: req.voice,
       model: req.model,
-      format,
+      format: 'mp3',
       speed,
       durationSec,
       createdAt: new Date().toISOString(),
@@ -160,7 +150,7 @@ export class SpeechService {
     const clip = this.store.read().clips.find((c) => c.id === id);
     if (!clip) throw new HttpException(`Clip '${id}' not found`, 404);
 
-    const filePath = this.audioPath(clip.id, clip.format);
+    const filePath = this.audioPath(clip.id);
     if (!fs.existsSync(filePath)) {
       throw new HttpException(`Audio for clip '${id}' missing on disk`, 404);
     }
@@ -174,7 +164,7 @@ export class SpeechService {
     if (idx === -1) throw new HttpException(`Clip '${id}' not found`, 404);
 
     const clip = store.clips[idx];
-    const filePath = this.audioPath(clip.id, clip.format);
+    const filePath = this.audioPath(clip.id);
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 
     store.clips.splice(idx, 1);

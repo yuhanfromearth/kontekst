@@ -1,6 +1,5 @@
 import type {
   SpeechClip,
-  SpeechFormat,
   TtsModel,
   VoicePrefsForModel,
 } from "@kontekst/dtos";
@@ -9,7 +8,6 @@ export interface SynthesizeArgs {
   input: string;
   model: string;
   voice: string;
-  response_format: SpeechFormat;
   speed?: number;
 }
 
