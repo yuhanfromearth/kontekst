@@ -253,11 +253,8 @@ export class AppController {
 
   @Get('speech/clips/:id/audio')
   streamSpeechAudio(@Param('id') id: string, @Res() res: Response): void {
-    const { stream, clip } = this.speechService.readClipAudio(id);
-    res.setHeader(
-      'Content-Type',
-      clip.format === 'mp3' ? 'audio/mpeg' : 'application/octet-stream',
-    );
+    const { stream } = this.speechService.readClipAudio(id);
+    res.setHeader('Content-Type', 'audio/mpeg');
     stream.pipe(res);
   }
 

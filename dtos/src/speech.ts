@@ -2,14 +2,10 @@ import { z } from 'zod';
 
 export const SPEECH_MAX_CHARS = 4096;
 
-export const SpeechFormatSchema = z.enum(['mp3', 'pcm']);
-export type SpeechFormat = z.infer<typeof SpeechFormatSchema>;
-
 export const SpeechRequestSchema = z.object({
   input: z.string().min(1).max(SPEECH_MAX_CHARS),
   model: z.string(),
   voice: z.string(),
-  response_format: SpeechFormatSchema.optional().default('mp3'),
   speed: z.number().min(0.25).max(4).optional(),
 });
 
@@ -20,7 +16,7 @@ export const SpeechClipSchema = z.object({
   text: z.string(),
   voice: z.string(),
   model: z.string(),
-  format: SpeechFormatSchema,
+  format: z.literal('mp3'),
   speed: z.number().nullable(),
   durationSec: z.number(),
   createdAt: z.string(),
