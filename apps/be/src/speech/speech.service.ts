@@ -14,6 +14,7 @@ import type {
   OpenRouterModelsResponse,
 } from '../model/interfaces/openrouter.interface.js';
 import { SpeechStore } from './interfaces/speech-store.type.js';
+import { cleanMp3 } from './mp3-clean.js';
 import {
   OPENROUTER_SPEECH_URL,
   OPENROUTER_TTS_MODELS_URL,
@@ -123,9 +124,19 @@ export class SpeechService {
       );
     }
 
-    const buffer = Buffer.from(await response.arrayBuffer());
+    const raw = Buffer.from(await response.arrayBuffer());
+    let bytes: Uint8Array = raw;
+    let durationSec = this.estimateDuration(req.input, speed);
+    if (format === 'mp3') {
+      const cleaned = cleanMp3(raw);
+      bytes = cleaned.buffer;
+      if (cleaned.durationSec > 0) {
+        durationSec = Math.round(cleaned.durationSec * 10) / 10;
+      }
+    }
+
     const id = crypto.randomUUID();
-    fs.writeFileSync(this.audioPath(id, format), buffer);
+    fs.writeFileSync(this.audioPath(id, format), bytes);
 
     const clip: SpeechClip = {
       id,
@@ -134,7 +145,7 @@ export class SpeechService {
       model: req.model,
       format,
       speed,
-      durationSec: this.estimateDuration(req.input, speed),
+      durationSec,
       createdAt: new Date().toISOString(),
     };
 

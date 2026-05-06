@@ -344,7 +344,12 @@ function SpeechPage() {
         />
       )}
 
-      {activeClip && <SpeechActivePlayer clip={activeClip} />}
+      {activeClip && (
+        <SpeechActivePlayer
+          clip={activeClip}
+          onClose={() => setActiveClip(null)}
+        />
+      )}
 
       <div className="flex-1 min-h-0 overflow-y-auto mt-6">
         <SpeechHistory

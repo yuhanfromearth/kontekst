@@ -1,10 +1,11 @@
 import type { SpeechClip } from "@kontekst/dtos";
-import { Download, Pause, Play } from "lucide-react";
+import { Download, Pause, Play, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { clipAudioUrl } from "#/lib/speechClient";
 
 interface SpeechActivePlayerProps {
   clip: SpeechClip;
+  onClose: () => void;
 }
 
 function fmtTime(s: number): string {
@@ -28,7 +29,10 @@ function deterministicBars(seed: string, count: number): number[] {
   return out;
 }
 
-export default function SpeechActivePlayer({ clip }: SpeechActivePlayerProps) {
+export default function SpeechActivePlayer({
+  clip,
+  onClose,
+}: SpeechActivePlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -111,11 +115,25 @@ export default function SpeechActivePlayer({ clip }: SpeechActivePlayerProps) {
         <span className="font-mono">{clip.voice}</span>
         <span className="opacity-50">·</span>
         <span className="font-mono">{clip.format}</span>
-        {!isPcm && (
+        {!isPcm ? (
           <span className="ml-auto font-mono">
             {fmtTime(progress * duration)} / {fmtTime(duration)}
           </span>
+        ) : (
+          <span className="ml-auto" />
         )}
+        <button
+          type="button"
+          onClick={() => {
+            audioRef.current?.pause();
+            onClose();
+          }}
+          className="p-1 -mr-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+          title="Close player"
+          aria-label="Close player"
+        >
+          <X className="size-3.5" />
+        </button>
       </div>
       {isPcm ? (
         <div className="flex items-center gap-3">
