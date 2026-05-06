@@ -7,6 +7,7 @@ export interface OpenRouterModel {
   context_length: number;
   pricing: ModelPricing;
   expiration_date?: string | null;
+  supported_voices?: string[] | null;
 }
 
 export interface OpenRouterModelsResponse {

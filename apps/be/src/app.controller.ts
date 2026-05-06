@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   HttpCode,
+  Param,
   ParseBoolPipe,
   ParseIntPipe,
   Patch,
@@ -24,7 +25,15 @@ import {
 } from './dtos/save.dto.js';
 import { DeleteShortcutDto, SaveShortcutDto } from './dtos/shortcut.dto.js';
 import { ChatDto } from './dtos/chat.dto.js';
+import {
+  SaveVoicePrefDto,
+  SetDefaultTtsModelDto,
+  SetDefaultVoiceDto,
+  SpeechDto,
+} from './dtos/speech.dto.js';
 import { ConversationService } from './conversation/conversation.service.js';
+import { SpeechService } from './speech/speech.service.js';
+import { VoicePrefService } from './voice-pref/voice-pref.service.js';
 import type {
   ConversationDto,
   ConversationSummary,
@@ -33,7 +42,10 @@ import type {
   KontekstDto,
   ModelDto,
   Shortcuts,
+  SpeechClip,
   StreamEvent,
+  TtsModel,
+  VoicePrefsForModel,
 } from '@kontekst/dtos';
 import { SetDefaultModelDto } from './dtos/model.dto.js';
 import { CreateKeyDto, SetActiveKeyDto } from './dtos/key.dto.js';
@@ -46,6 +58,8 @@ export class AppController {
     private readonly conversationService: ConversationService,
     private readonly keyService: KeyService,
     private readonly modelService: ModelService,
+    private readonly speechService: SpeechService,
+    private readonly voicePrefService: VoicePrefService,
   ) {}
 
   @Post('chat')
@@ -225,5 +239,71 @@ export class AppController {
   deleteShortcut(@Body() body: DeleteShortcutDto): void {
     const { kontekstName } = body;
     this.kontekstService.deleteShortcut(kontekstName);
+  }
+
+  @Post('speech')
+  synthesize(@Body() body: SpeechDto): Promise<SpeechClip> {
+    return this.speechService.synthesize(body);
+  }
+
+  @Get('speech/clips')
+  listSpeechClips(): SpeechClip[] {
+    return this.speechService.listClips();
+  }
+
+  @Get('speech/clips/:id/audio')
+  streamSpeechAudio(@Param('id') id: string, @Res() res: Response): void {
+    const { stream, clip } = this.speechService.readClipAudio(id);
+    res.setHeader(
+      'Content-Type',
+      clip.format === 'mp3' ? 'audio/mpeg' : 'application/octet-stream',
+    );
+    stream.pipe(res);
+  }
+
+  @Delete('speech/clips/:id')
+  @HttpCode(204)
+  deleteSpeechClip(@Param('id') id: string): void {
+    this.speechService.deleteClip(id);
+  }
+
+  @Get('speech/models')
+  listTtsModels(): Promise<TtsModel[]> {
+    return this.speechService.listModels();
+  }
+
+  @Get('speech/models/default')
+  getDefaultTtsModel(): Promise<TtsModel | null> {
+    return this.speechService.getDefaultModel();
+  }
+
+  @Post('speech/models/default')
+  @HttpCode(204)
+  setDefaultTtsModel(@Body() body: SetDefaultTtsModelDto): void {
+    this.speechService.setDefaultModel(body.modelId);
+  }
+
+  @Get('speech/voice-prefs')
+  listVoicePrefs(@Query('modelId') modelId: string): VoicePrefsForModel {
+    return this.voicePrefService.list(modelId);
+  }
+
+  @Post('speech/voice-prefs')
+  @HttpCode(204)
+  saveVoicePref(@Body() body: SaveVoicePrefDto): void {
+    const { modelId, voiceId, name, shortcut } = body;
+    this.voicePrefService.upsert(modelId, voiceId, { name, shortcut });
+  }
+
+  @Post('speech/voice-prefs/default')
+  @HttpCode(204)
+  setDefaultVoice(@Body() body: SetDefaultVoiceDto): void {
+    this.voicePrefService.setDefault(body.modelId, body.voiceId);
+  }
+
+  @Delete('speech/voice-prefs/default')
+  @HttpCode(204)
+  clearDefaultVoice(@Query('modelId') modelId: string): void {
+    this.voicePrefService.clearDefault(modelId);
   }
 }

@@ -1,6 +1,6 @@
 # kontekst
 
-OpenRouter wrapper with minimal UI and local Context Management with utility keyboard shortcuts. Chat with any LLM, at API cost, without the noise.
+OpenRouter wrapper with minimal UI and local Context Management with utility keyboard shortcuts. Chat with any LLM, at API cost, without the noise. Includes a parallel **speech mode** for OpenRouter's TTS models.
 
 ## Getting started
 
@@ -25,6 +25,8 @@ The backend persists all state as JSON files inside `KONTEKST_FOLDER` (default `
 - `keys.json` — OpenRouter API keys. Written with mode `0600` (owner read/write only). Manage them from the wallet menu in the UI; chat is disabled until at least one key is added.
 - `konteksts.json` — named LLM contexts (system prompts).
 - `conversations.json` — full chat history per conversation, including the resolved kontekst, model, messages.
+- `speech-clips.json` + `speech-audio/<id>.{mp3,pcm}` — TTS clip metadata and the raw audio bytes for each generation.
+- `voice-prefs.json` — per-(model, voice) friendly names, keyboard shortcuts, and the default voice for each TTS model.
 
 ## Development
 

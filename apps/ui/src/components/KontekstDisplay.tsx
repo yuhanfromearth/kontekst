@@ -177,6 +177,14 @@ export default function KontekstDisplay({
           variant={selected === kontekst ? "default" : "outline"}
           className={`gap-1 font-mono ${isModHeld && hoveredKontekst === kontekst ? "cursor-alias opacity-70 ring-2 ring-ring/50" : "cursor-pointer"} ${selected === kontekst ? "transition-opacity" : "transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] active:scale-95"}`}
         >
+          {defaultKontekst === kontekst && (
+            <span
+              className="text-muted-foreground/80"
+              title="Default kontekst"
+            >
+              ★
+            </span>
+          )}
           {kontekst}
           {shortcuts?.[kontekst] && selected !== kontekst && isMac !== null && (
             <ShortcutDisplay shortcut={shortcuts[kontekst]} isMac={isMac} />

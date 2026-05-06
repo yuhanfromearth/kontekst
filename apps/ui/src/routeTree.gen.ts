@@ -9,10 +9,16 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SpeechRouteImport } from './routes/speech'
 import { Route as ShortcutsRouteImport } from './routes/shortcuts'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as KontekstNameRouteImport } from './routes/kontekst.$name'
 
+const SpeechRoute = SpeechRouteImport.update({
+  id: '/speech',
+  path: '/speech',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ShortcutsRoute = ShortcutsRouteImport.update({
   id: '/shortcuts',
   path: '/shortcuts',
@@ -32,35 +38,46 @@ const KontekstNameRoute = KontekstNameRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/shortcuts': typeof ShortcutsRoute
+  '/speech': typeof SpeechRoute
   '/kontekst/$name': typeof KontekstNameRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/shortcuts': typeof ShortcutsRoute
+  '/speech': typeof SpeechRoute
   '/kontekst/$name': typeof KontekstNameRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/shortcuts': typeof ShortcutsRoute
+  '/speech': typeof SpeechRoute
   '/kontekst/$name': typeof KontekstNameRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/shortcuts' | '/kontekst/$name'
+  fullPaths: '/' | '/shortcuts' | '/speech' | '/kontekst/$name'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/shortcuts' | '/kontekst/$name'
-  id: '__root__' | '/' | '/shortcuts' | '/kontekst/$name'
+  to: '/' | '/shortcuts' | '/speech' | '/kontekst/$name'
+  id: '__root__' | '/' | '/shortcuts' | '/speech' | '/kontekst/$name'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ShortcutsRoute: typeof ShortcutsRoute
+  SpeechRoute: typeof SpeechRoute
   KontekstNameRoute: typeof KontekstNameRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/speech': {
+      id: '/speech'
+      path: '/speech'
+      fullPath: '/speech'
+      preLoaderRoute: typeof SpeechRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/shortcuts': {
       id: '/shortcuts'
       path: '/shortcuts'
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ShortcutsRoute: ShortcutsRoute,
+  SpeechRoute: SpeechRoute,
   KontekstNameRoute: KontekstNameRoute,
 }
 export const routeTree = rootRouteImport
