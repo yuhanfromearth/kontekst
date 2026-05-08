@@ -1,5 +1,14 @@
 import type { SpeechClip } from '@kontekst/dtos';
-import { Check, Copy, Download, Pause, Play, RotateCcw, RotateCw, X } from 'lucide-react';
+import {
+  Check,
+  Copy,
+  Download,
+  Pause,
+  Play,
+  RotateCcw,
+  RotateCw,
+  X,
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Dialog, DialogClose, DialogContent } from '#/components/ui/dialog';
 import { clipAudioUrl } from '#/lib/speechClient';
@@ -182,7 +191,9 @@ export default function SpeechPlayerDialog({
       await navigator.clipboard.writeText(clip.text);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-    } catch {}
+    } catch (err) {
+      console.error('Clipboard copy failed:', err);
+    }
   };
 
   const progress = duration > 0 ? Math.min(1, currentTime / duration) : 0;
