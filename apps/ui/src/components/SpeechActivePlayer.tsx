@@ -54,14 +54,12 @@ export default function SpeechPlayerDialog({
     [clip?.id, clip?.text],
   );
 
-  // Auto-play on open / clip change.
   useEffect(() => {
     if (!open || !clip) return;
     setExpanded(false);
     setDuration(clip.durationSec);
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.play().catch(() => {});
+    setCurrentTime(0);
+    setIsPlaying(false);
   }, [open, clip?.id]);
 
   // Pause on close.
@@ -182,8 +180,11 @@ export default function SpeechPlayerDialog({
         {clip && (
           <>
             <audio
+              key={clip.id}
               ref={audioRef}
               src={clipAudioUrl(clip.id)}
+              autoPlay
+              preload="auto"
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
               onEnded={() => setIsPlaying(false)}
