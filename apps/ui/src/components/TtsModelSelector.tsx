@@ -61,7 +61,7 @@ export default function TtsModelSelector({
         {selected?.name ?? 'select TTS model'}
         <ChevronDown className="size-3" />
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-2" align="start">
+      <PopoverContent className="w-[28rem] p-2" align="start">
         <Input
           placeholder="Search TTS models..."
           value={search}
@@ -86,12 +86,20 @@ export default function TtsModelSelector({
                   className="flex-1 text-left px-2 py-1.5 rounded transition-colors hover:bg-accent"
                 >
                   <div className="text-sm font-medium">{m.name}</div>
-                  <div className="text-xs text-muted-foreground flex gap-2 mt-0.5">
-                    <span className="font-mono">{m.id}</span>
-                    <span>in {formatPrice(m.pricing.prompt)}</span>
-                    {parseFloat(m.pricing.completion) > 0 && (
-                      <span>out {formatPrice(m.pricing.completion)}</span>
-                    )}
+                  <div className="flex items-start gap-2 mt-0.5 text-xs text-muted-foreground">
+                    <span className="font-mono break-all min-w-0 flex-1">
+                      {m.id}
+                    </span>
+                    <span className="shrink-0 flex gap-2 font-medium">
+                      <span className="text-emerald-700 dark:text-emerald-400">
+                        in {formatPrice(m.pricing.prompt)}
+                      </span>
+                      {parseFloat(m.pricing.completion) > 0 && (
+                        <span className="text-sky-700 dark:text-sky-400">
+                          out {formatPrice(m.pricing.completion)}
+                        </span>
+                      )}
+                    </span>
                   </div>
                 </button>
                 <button

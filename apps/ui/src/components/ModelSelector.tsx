@@ -142,15 +142,23 @@ export default function ModelSelector({
                   }}
                 >
                   <div className="font-medium truncate">{model.name}</div>
-                  <div className="text-xs text-muted-foreground flex gap-2 mt-0.5">
-                    <span>{formatTokens(model.contextLength)} ctx</span>
-                    <span>in {formatPrice(model.pricing.prompt)}</span>
-                    <span>out {formatPrice(model.pricing.completion)}</span>
-                    {expiryLabel && (
-                      <span className="text-amber-600 dark:text-amber-400">
-                        {expiryLabel}
+                  <div className="flex items-start gap-2 mt-0.5 text-xs text-muted-foreground">
+                    <span className="min-w-0 flex-1 flex flex-wrap gap-2">
+                      <span>{formatTokens(model.contextLength)} ctx</span>
+                      {expiryLabel && (
+                        <span className="text-amber-600 dark:text-amber-400">
+                          {expiryLabel}
+                        </span>
+                      )}
+                    </span>
+                    <span className="shrink-0 flex gap-2 font-medium">
+                      <span className="text-emerald-700 dark:text-emerald-400">
+                        in {formatPrice(model.pricing.prompt)}
                       </span>
-                    )}
+                      <span className="text-sky-700 dark:text-sky-400">
+                        out {formatPrice(model.pricing.completion)}
+                      </span>
+                    </span>
                   </div>
                 </button>
                 <a
