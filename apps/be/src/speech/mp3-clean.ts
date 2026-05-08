@@ -22,6 +22,8 @@ interface FrameInfo {
   size: number;
   samplesPerFrame: number;
   sampleRate: number;
+  versionBits: number;
+  layerBits: number;
   isVbrHeader: boolean;
 }
 
@@ -63,7 +65,26 @@ function parseFrame(buf: Buffer, pos: number): FrameInfo | null {
     .toString('latin1');
   const isVbrHeader = /Xing|Info|VBRI/.test(tail);
 
-  return { start: pos, size: frameSize, samplesPerFrame, sampleRate, isVbrHeader };
+  return {
+    start: pos,
+    size: frameSize,
+    samplesPerFrame,
+    sampleRate,
+    versionBits,
+    layerBits,
+    isVbrHeader,
+  };
+}
+
+// A real frame must be followed by another sync (or be the last frame). Random
+// 0xFF 0xE0 byte pairs in non-audio data pass parseFrame's bounds checks but
+// fail this chain — without it, false positives end up in the cleaned buffer
+// and browsers stop decoding when they hit one mid-stream.
+function nextSyncOk(buf: Buffer, frame: FrameInfo): boolean {
+  const next = frame.start + frame.size;
+  if (next === buf.length) return true;
+  if (next + 1 >= buf.length) return false;
+  return buf[next] === 0xff && (buf[next + 1] & 0xe0) === 0xe0;
 }
 
 export interface CleanedMp3 {
@@ -94,7 +115,7 @@ export function cleanMp3(buf: Buffer): CleanedMp3 {
 
   while (pos < buf.length) {
     const frame = parseFrame(buf, pos);
-    if (!frame) {
+    if (!frame || !nextSyncOk(buf, frame)) {
       pos++;
       continue;
     }

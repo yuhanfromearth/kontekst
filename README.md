@@ -1,5 +1,7 @@
 # kontekst
 
+![kontekst](apps/ui/public/kontekst_animation.gif)
+
 OpenRouter wrapper with minimal UI and local Context Management with utility keyboard shortcuts. Chat with any LLM, at API cost, without the noise. Includes a parallel **speech mode** for OpenRouter's TTS models.
 
 ## Getting started
