@@ -1,5 +1,5 @@
 import type { SpeechClip } from '@kontekst/dtos';
-import { Download, Pause, Play, RotateCcw, RotateCw, X } from 'lucide-react';
+import { Check, Copy, Download, Pause, Play, RotateCcw, RotateCw, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Dialog, DialogClose, DialogContent } from '#/components/ui/dialog';
 import { clipAudioUrl } from '#/lib/speechClient';
@@ -48,6 +48,7 @@ export default function SpeechPlayerDialog({
   const [duration, setDuration] = useState(0);
   const [scrubbing, setScrubbing] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const bars = useMemo(
     () => (clip ? deterministicBars(clip.id + clip.text, BAR_COUNT) : []),
@@ -60,6 +61,7 @@ export default function SpeechPlayerDialog({
     setDuration(clip.durationSec);
     setCurrentTime(0);
     setIsPlaying(false);
+    setCopied(false);
   }, [open, clip?.id]);
 
   // Pause on close.
@@ -172,6 +174,15 @@ export default function SpeechPlayerDialog({
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
     window.addEventListener('pointercancel', up);
+  };
+
+  const copyText = async () => {
+    if (!clip) return;
+    try {
+      await navigator.clipboard.writeText(clip.text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {}
   };
 
   const progress = duration > 0 ? Math.min(1, currentTime / duration) : 0;
@@ -318,8 +329,24 @@ export default function SpeechPlayerDialog({
             </div>
 
             <div className="mt-4 border border-border rounded-lg bg-muted/50 px-3.5 py-3">
-              <div className="text-[0.7rem] font-semibold tracking-widest uppercase text-muted-foreground mb-1.5">
-                Text
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="text-[0.7rem] font-semibold tracking-widest uppercase text-muted-foreground">
+                  Text
+                </div>
+                <button
+                  type="button"
+                  onClick={copyText}
+                  title="Copy text"
+                  aria-label="Copy text"
+                  className="inline-flex items-center gap-1 h-6 px-2 rounded-md border border-border bg-background text-foreground text-[0.7rem] cursor-pointer hover:bg-muted transition-colors"
+                >
+                  {copied ? (
+                    <Check className="size-3" />
+                  ) : (
+                    <Copy className="size-3" />
+                  )}
+                  {copied ? 'copied' : 'copy'}
+                </button>
               </div>
               <div
                 className={`text-sm leading-relaxed text-foreground whitespace-pre-wrap ${
