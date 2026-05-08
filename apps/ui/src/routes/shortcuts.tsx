@@ -192,6 +192,25 @@ function ShortcutsPage() {
           />
         </Section>
 
+        <Section title="Speech player">
+          <ShortcutRow
+            title="Play / pause"
+            description="Halt or continue the active clip."
+            keys={<Kbd>Space</Kbd>}
+          />
+          <ShortcutRow
+            title="Skip 5 seconds"
+            description="Rewind or skip the active clip by 5 seconds."
+            keys={
+              <>
+                <Kbd>←</Kbd>
+                <span className="text-muted-foreground text-sm">/</span>
+                <Kbd>→</Kbd>
+              </>
+            }
+          />
+        </Section>
+
         <Section title="Navigation">
           <ShortcutRow
             title="Go back"

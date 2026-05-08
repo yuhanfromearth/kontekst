@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   HttpCode,
   Param,
   ParseBoolPipe,
@@ -14,6 +15,7 @@ import {
   Res,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import fs from 'node:fs';
 import { LlmService } from './llm/llm.service.js';
 import { KeyService } from './key/key.service.js';
 import { KontekstService } from './kontekst/kontekst.service.js';
@@ -252,10 +254,27 @@ export class AppController {
   }
 
   @Get('speech/clips/:id/audio')
-  streamSpeechAudio(@Param('id') id: string, @Res() res: Response): void {
-    const { stream } = this.speechService.readClipAudio(id);
+  streamSpeechAudio(
+    @Param('id') id: string,
+    @Headers('range') rangeHeader: string | undefined,
+    @Res() res: Response,
+  ): void {
+    const { filePath, size } = this.speechService.resolveClipAudio(id);
     res.setHeader('Content-Type', 'audio/mpeg');
-    stream.pipe(res);
+    res.setHeader('Accept-Ranges', 'bytes');
+
+    const range = parseRangeHeader(rangeHeader, size);
+    if (range) {
+      const { start, end } = range;
+      res.status(206);
+      res.setHeader('Content-Range', `bytes ${start}-${end}/${size}`);
+      res.setHeader('Content-Length', String(end - start + 1));
+      fs.createReadStream(filePath, { start, end }).pipe(res);
+      return;
+    }
+
+    res.setHeader('Content-Length', String(size));
+    fs.createReadStream(filePath).pipe(res);
   }
 
   @Delete('speech/clips/:id')
@@ -303,4 +322,36 @@ export class AppController {
   clearDefaultVoice(@Query('modelId') modelId: string): void {
     this.voicePrefService.clearDefault(modelId);
   }
+}
+
+// Parse a single-range `Range` header per RFC 7233. Supports `bytes=N-`,
+// `bytes=N-M`, and the suffix form `bytes=-N` (last N bytes). Returns null
+// for missing/malformed/unsatisfiable input so the caller can fall through
+// to a 200 full-body response.
+function parseRangeHeader(
+  header: string | undefined,
+  size: number,
+): { start: number; end: number } | null {
+  if (!header) return null;
+  const match = /^bytes=(\d*)-(\d*)$/.exec(header.trim());
+  if (!match) return null;
+  const startStr = match[1];
+  const endStr = match[2];
+  if (startStr === '' && endStr === '') return null;
+
+  let start: number;
+  let end: number;
+  if (startStr === '') {
+    const suffix = parseInt(endStr, 10);
+    if (!Number.isFinite(suffix) || suffix <= 0) return null;
+    start = Math.max(0, size - suffix);
+    end = size - 1;
+  } else {
+    start = parseInt(startStr, 10);
+    end = endStr === '' ? size - 1 : parseInt(endStr, 10);
+  }
+
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+  if (start < 0 || start >= size || end >= size || start > end) return null;
+  return { start, end };
 }

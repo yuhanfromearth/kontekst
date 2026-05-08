@@ -146,7 +146,11 @@ export class SpeechService {
     return clip;
   }
 
-  readClipAudio(id: string): { stream: fs.ReadStream; clip: SpeechClip } {
+  resolveClipAudio(id: string): {
+    filePath: string;
+    size: number;
+    clip: SpeechClip;
+  } {
     const clip = this.store.read().clips.find((c) => c.id === id);
     if (!clip) throw new HttpException(`Clip '${id}' not found`, 404);
 
@@ -155,7 +159,8 @@ export class SpeechService {
       throw new HttpException(`Audio for clip '${id}' missing on disk`, 404);
     }
 
-    return { stream: fs.createReadStream(filePath), clip };
+    const size = fs.statSync(filePath).size;
+    return { filePath, size, clip };
   }
 
   deleteClip(id: string): void {

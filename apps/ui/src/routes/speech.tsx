@@ -5,7 +5,7 @@ import SpeechModeChip from "#/components/SpeechModeChip";
 import TtsModelSelector from "#/components/TtsModelSelector";
 import VoiceBadges from "#/components/VoiceBadges";
 import SpeedControl from "#/components/SpeedControl";
-import SpeechActivePlayer from "#/components/SpeechActivePlayer";
+import SpeechPlayerDialog from "#/components/SpeechActivePlayer";
 import SpeechHistory from "#/components/SpeechHistory";
 import { Button } from "#/components/ui/button";
 import { Spinner } from "#/components/ui/spinner";
@@ -334,13 +334,6 @@ function SpeechPage() {
         />
       )}
 
-      {activeClip && (
-        <SpeechActivePlayer
-          clip={activeClip}
-          onClose={() => setActiveClip(null)}
-        />
-      )}
-
       <div className="flex-1 min-h-0 overflow-y-auto mt-6">
         <SpeechHistory
           clips={clips}
@@ -349,6 +342,12 @@ function SpeechPage() {
           onDelete={deleteMutation.mutate}
         />
       </div>
+
+      <SpeechPlayerDialog
+        clip={activeClip}
+        open={!!activeClip}
+        onClose={() => setActiveClip(null)}
+      />
     </div>
   );
 }
