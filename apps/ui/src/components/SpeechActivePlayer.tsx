@@ -80,19 +80,25 @@ export default function SpeechPlayerDialog({
     return () => cancelAnimationFrame(raf);
   }, [isPlaying, scrubbing]);
 
-  // Space toggles play/pause.
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key !== " ") return;
       const target = e.target as HTMLElement | null;
       const tag = target?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA") return;
-      e.preventDefault();
-      togglePlay();
+      if (e.key === " ") {
+        e.preventDefault();
+        togglePlay();
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        skip(-5);
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        skip(5);
+      }
     };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
+    document.addEventListener("keydown", handler, true);
+    return () => document.removeEventListener("keydown", handler, true);
   }, [open]);
 
   const liveDuration = (): number => {
