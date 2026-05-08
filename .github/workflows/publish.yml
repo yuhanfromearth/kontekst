@@ -2,14 +2,25 @@ name: Release
 
 on:
   push:
-    branches: [main, dev]
-  pull_request:
     branches: [main]
+  pull_request:
 
 permissions:
   contents: read
 
 jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run build:dtos
+      - run: npm run lint
+      - run: npm run format:check
+
   test:
     runs-on: ubuntu-latest
     steps:
@@ -21,7 +32,7 @@ jobs:
       - run: npm test --workspaces --if-present
 
   release:
-    needs: test
+    needs: [quality, test]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
@@ -36,7 +47,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
-          node-version: "24"
+          node-version: '24'
       - run: npm ci
       - run: npx semantic-release
         env:

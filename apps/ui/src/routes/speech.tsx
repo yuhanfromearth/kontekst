@@ -1,30 +1,26 @@
-import KontekstLogo from "#/components/KontekstLogo";
-import KeyUsageDisplay from "#/components/KeyUsageDisplay";
-import ThemeToggle from "#/components/ThemeToggle";
-import SpeechModeChip from "#/components/SpeechModeChip";
-import TtsModelSelector from "#/components/TtsModelSelector";
-import VoiceBadges from "#/components/VoiceBadges";
-import SpeedControl from "#/components/SpeedControl";
-import SpeechPlayerDialog from "#/components/SpeechActivePlayer";
-import SpeechHistory from "#/components/SpeechHistory";
-import { Button } from "#/components/ui/button";
-import { Spinner } from "#/components/ui/spinner";
-import { Textarea } from "#/components/ui/textarea";
+import KontekstLogo from '#/components/KontekstLogo';
+import KeyUsageDisplay from '#/components/KeyUsageDisplay';
+import ThemeToggle from '#/components/ThemeToggle';
+import SpeechModeChip from '#/components/SpeechModeChip';
+import TtsModelSelector from '#/components/TtsModelSelector';
+import VoiceBadges from '#/components/VoiceBadges';
+import SpeedControl from '#/components/SpeedControl';
+import SpeechPlayerDialog from '#/components/SpeechActivePlayer';
+import SpeechHistory from '#/components/SpeechHistory';
+import { Button } from '#/components/ui/button';
+import { Spinner } from '#/components/ui/spinner';
+import { Textarea } from '#/components/ui/textarea';
 import {
   SPEECH_MAX_CHARS,
   type KeyListItem,
   type SpeechClip,
   type TtsModel,
   type VoicePrefsForModel,
-} from "@kontekst/dtos";
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import ModeToggle from "#/components/ModeToggle";
-import { useEffect, useRef, useState } from "react";
+} from '@kontekst/dtos';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import ModeToggle from '#/components/ModeToggle';
+import { useEffect, useRef, useState } from 'react';
 import {
   deleteClip as apiDeleteClip,
   getDefaultTtsModel,
@@ -32,11 +28,11 @@ import {
   listTtsModels,
   listVoicePrefs,
   synthesizeSpeech,
-} from "#/lib/speechClient";
+} from '#/lib/speechClient';
 
-export const Route = createFileRoute("/speech")({ component: SpeechPage });
+export const Route = createFileRoute('/speech')({ component: SpeechPage });
 
-const STORAGE_PREFIX = "kontekst-speech-";
+const STORAGE_PREFIX = 'kontekst-speech-';
 
 function loadPref<T>(key: string, fallback: T): T {
   try {
@@ -62,37 +58,37 @@ function SpeechPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { data: keys = [], isPending: keysLoading } = useQuery<KeyListItem[]>({
-    queryKey: ["keys"],
-    queryFn: () => fetch("/api/keys").then((r) => r.json()),
+    queryKey: ['keys'],
+    queryFn: () => fetch('/api/keys').then((r) => r.json()),
   });
   const hasActiveKey = keys.some((k) => k.isActive);
   const showNoKey = !keysLoading && !hasActiveKey;
 
   const { data: models = [], isPending: modelsPending } = useQuery<TtsModel[]>({
-    queryKey: ["tts-models"],
+    queryKey: ['tts-models'],
     queryFn: listTtsModels,
     enabled: hasActiveKey,
   });
   const { data: defaultTtsModel } = useQuery<TtsModel | null>({
-    queryKey: ["tts-models", "default"],
+    queryKey: ['tts-models', 'default'],
     queryFn: getDefaultTtsModel,
     enabled: hasActiveKey,
   });
   const { data: clips = [], isPending: clipsPending } = useQuery<SpeechClip[]>({
-    queryKey: ["speech-clips"],
+    queryKey: ['speech-clips'],
     queryFn: listClips,
   });
 
   const [selectedModel, setSelectedModel] = useState<TtsModel | null>(null);
   const { data: voicePrefs = {}, isPending: voicePrefsPending } =
     useQuery<VoicePrefsForModel>({
-      queryKey: ["voice-prefs", selectedModel?.id],
+      queryKey: ['voice-prefs', selectedModel?.id],
       queryFn: () => listVoicePrefs(selectedModel!.id),
       enabled: !!selectedModel,
     });
-  const [voice, setVoice] = useState<string>(() => loadPref("voice", ""));
-  const [speed, setSpeed] = useState<number>(() => loadPref("speed", 1.0));
-  const [text, setText] = useState("");
+  const [voice, setVoice] = useState<string>(() => loadPref('voice', ''));
+  const [speed, setSpeed] = useState<number>(() => loadPref('speed', 1.0));
+  const [text, setText] = useState('');
   const [activeClip, setActiveClip] = useState<SpeechClip | null>(null);
   const [error, setError] = useState<string | undefined>();
 
@@ -123,7 +119,7 @@ function SpeechPage() {
       return;
     }
     const defaultVoiceId = Object.entries(voicePrefs).find(
-      ([, p]) => p.isDefault,
+      ([, p]) => p.isDefault
     )?.[0];
     if (defaultVoiceId && selectedModel.voices.includes(defaultVoiceId)) {
       setVoice(defaultVoiceId);
@@ -133,20 +129,20 @@ function SpeechPage() {
     lastResolvedModelId.current = selectedModel.id;
   }, [selectedModel, voice, voicePrefs]);
 
-  useEffect(() => savePref("voice", voice), [voice]);
-  useEffect(() => savePref("speed", speed), [speed]);
+  useEffect(() => savePref('voice', voice), [voice]);
+  useEffect(() => savePref('speed', speed), [speed]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") textareaRef.current?.blur();
+      if (e.key === 'Escape') textareaRef.current?.blur();
       if (document.activeElement === textareaRef.current) return;
-      if (e.key === "/") {
+      if (e.key === '/') {
         e.preventDefault();
         textareaRef.current?.focus();
       }
     };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
   }, []);
 
   const charCount = text.length;
@@ -155,7 +151,7 @@ function SpeechPage() {
 
   const synthesize = useMutation({
     mutationFn: () => {
-      if (!selectedModel) throw new Error("No model selected");
+      if (!selectedModel) throw new Error('No model selected');
       return synthesizeSpeech({
         input: text.trim(),
         model: selectedModel.id,
@@ -166,11 +162,11 @@ function SpeechPage() {
     onSuccess: (clip) => {
       setActiveClip(clip);
       setError(undefined);
-      queryClient.invalidateQueries({ queryKey: ["speech-clips"] });
-      queryClient.invalidateQueries({ queryKey: ["keyInfo"] });
+      queryClient.invalidateQueries({ queryKey: ['speech-clips'] });
+      queryClient.invalidateQueries({ queryKey: ['keyInfo'] });
     },
     onError: (err) => {
-      setError(err instanceof Error ? err.message : "TTS failed");
+      setError(err instanceof Error ? err.message : 'TTS failed');
     },
   });
 
@@ -178,7 +174,7 @@ function SpeechPage() {
     mutationFn: apiDeleteClip,
     onSuccess: (_, id) => {
       if (activeClip?.id === id) setActiveClip(null);
-      queryClient.invalidateQueries({ queryKey: ["speech-clips"] });
+      queryClient.invalidateQueries({ queryKey: ['speech-clips'] });
     },
   });
 
@@ -214,7 +210,7 @@ function SpeechPage() {
           <ThemeToggle />
           <button
             type="button"
-            onClick={() => navigate({ to: "/shortcuts" })}
+            onClick={() => navigate({ to: '/shortcuts' })}
             className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
             title="Keyboard shortcuts"
             aria-label="Keyboard shortcuts"
@@ -236,7 +232,7 @@ function SpeechPage() {
           />
         )}
         <span
-          className={`text-xs font-mono mr-1 ${overLimit ? "text-destructive" : "text-muted-foreground"}`}
+          className={`text-xs font-mono mr-1 ${overLimit ? 'text-destructive' : 'text-muted-foreground'}`}
         >
           {charCount.toLocaleString()} / {SPEECH_MAX_CHARS.toLocaleString()}
         </span>
@@ -252,7 +248,9 @@ function SpeechPage() {
       <Textarea
         ref={textareaRef}
         placeholder={
-          showNoKey ? "Add an API key first…" : "What would you like spoken aloud? [/]"
+          showNoKey
+            ? 'Add an API key first…'
+            : 'What would you like spoken aloud? [/]'
         }
         value={text}
         disabled={showNoKey}
@@ -261,12 +259,12 @@ function SpeechPage() {
           setError(undefined);
         }}
         onKeyDown={(e) => {
-          if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+          if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
             e.preventDefault();
             generate();
           }
         }}
-        className={overLimit ? "border-destructive" : undefined}
+        className={overLimit ? 'border-destructive' : undefined}
       />
 
       <div className="mt-2.5 flex items-center justify-between gap-3 flex-wrap px-1">
@@ -312,7 +310,7 @@ function SpeechPage() {
           className="hover:cursor-pointer"
           disabled={!text.length}
           onClick={() => {
-            setText("");
+            setText('');
             textareaRef.current?.focus();
           }}
         >
@@ -320,9 +318,7 @@ function SpeechPage() {
         </Button>
       </div>
 
-      {error && (
-        <p className="text-xs text-destructive mt-2 ml-1">{error}</p>
-      )}
+      {error && <p className="text-xs text-destructive mt-2 ml-1">{error}</p>}
 
       {selectedModel && (
         <VoiceBadges

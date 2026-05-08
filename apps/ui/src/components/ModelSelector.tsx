@@ -1,14 +1,14 @@
-import type { ModelDto } from "@kontekst/dtos";
-import { formatTokens } from "#/lib/tokens";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-import { Input } from "#/components/ui/input";
+import type { ModelDto } from '@kontekst/dtos';
+import { formatTokens } from '#/lib/tokens';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { Input } from '#/components/ui/input';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "#/components/ui/popover";
-import { ExternalLink, Star } from "lucide-react";
+} from '#/components/ui/popover';
+import { ExternalLink, Star } from 'lucide-react';
 
 interface ModelSelectorProps {
   selectedModel: string;
@@ -22,7 +22,7 @@ function formatPrice(perToken: string): string {
 }
 
 function isFree(model: ModelDto): boolean {
-  return model.pricing.prompt === "0" && model.pricing.completion === "0";
+  return model.pricing.prompt === '0' && model.pricing.completion === '0';
 }
 
 function daysUntil(iso: string): number {
@@ -36,8 +36,8 @@ export default function ModelSelector({
   onSelect,
 }: ModelSelectorProps) {
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [freeOnly, setFreeOnly] = useState(false);
   const queryClient = useQueryClient();
 
@@ -47,33 +47,33 @@ export default function ModelSelector({
   }, [search]);
 
   const { data: models } = useQuery<ModelDto[]>({
-    queryKey: ["models", debouncedSearch, freeOnly],
+    queryKey: ['models', debouncedSearch, freeOnly],
     queryFn: () => {
       const params = new URLSearchParams({
         search: debouncedSearch,
-        limit: "20",
+        limit: '20',
       });
-      if (freeOnly) params.set("free", "true");
+      if (freeOnly) params.set('free', 'true');
       return fetch(`/api/models?${params.toString()}`).then((res) =>
-        res.json(),
+        res.json()
       );
     },
     enabled: open,
   });
 
   const { data: defaultModel } = useQuery<ModelDto>({
-    queryKey: ["models", "default"],
-    queryFn: () => fetch("/api/models/default").then((res) => res.json()),
+    queryKey: ['models', 'default'],
+    queryFn: () => fetch('/api/models/default').then((res) => res.json()),
     enabled: open,
   });
 
   async function setDefaultModel(modelId: string) {
-    await fetch("/api/models/default", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    await fetch('/api/models/default', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ modelId }),
     });
-    await queryClient.invalidateQueries({ queryKey: ["models", "default"] });
+    await queryClient.invalidateQueries({ queryKey: ['models', 'default'] });
   }
 
   // Pin the selected model at the top if it isn't in the current results
@@ -83,11 +83,11 @@ export default function ModelSelector({
     ...(models
       ?.slice()
       .sort((a, b) =>
-        a.id === selectedModel ? -1 : b.id === selectedModel ? 1 : 0,
+        a.id === selectedModel ? -1 : b.id === selectedModel ? 1 : 0
       ) ?? []),
   ];
 
-  const label = selectedModelDto?.name || selectedModel || "select model";
+  const label = selectedModelDto?.name || selectedModel || 'select model';
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -109,8 +109,8 @@ export default function ModelSelector({
             onClick={() => setFreeOnly((v) => !v)}
             className={`text-xs px-2 rounded border transition-colors ${
               freeOnly
-                ? "bg-accent text-foreground border-transparent"
-                : "text-muted-foreground hover:text-foreground"
+                ? 'bg-accent text-foreground border-transparent'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             Free
@@ -131,7 +131,7 @@ export default function ModelSelector({
             return (
               <div
                 key={model.id}
-                className={`group flex items-center rounded ${model.id === selectedModel ? "bg-accent" : ""}`}
+                className={`group flex items-center rounded ${model.id === selectedModel ? 'bg-accent' : ''}`}
               >
                 <button
                   type="button"
@@ -165,8 +165,8 @@ export default function ModelSelector({
                 </a>
                 <button
                   type="button"
-                  title={isDefault ? "Default model" : "Set as default"}
-                  className={`mr-1 p-1 rounded transition-colors ${isDefault ? "text-foreground" : "text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-foreground"}`}
+                  title={isDefault ? 'Default model' : 'Set as default'}
+                  className={`mr-1 p-1 rounded transition-colors ${isDefault ? 'text-foreground' : 'text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-foreground'}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     if (!isDefault) setDefaultModel(model.id);
@@ -174,7 +174,7 @@ export default function ModelSelector({
                 >
                   <Star
                     className="size-3.5"
-                    fill={isDefault ? "currentColor" : "none"}
+                    fill={isDefault ? 'currentColor' : 'none'}
                   />
                 </button>
               </div>
@@ -182,7 +182,7 @@ export default function ModelSelector({
           })}
           {displayModels.length === 0 && (
             <p className="text-xs text-muted-foreground px-2 py-1.5">
-              {freeOnly ? "No free models match." : "No models found."}
+              {freeOnly ? 'No free models match.' : 'No models found.'}
             </p>
           )}
         </div>

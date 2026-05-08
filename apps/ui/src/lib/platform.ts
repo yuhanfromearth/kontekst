@@ -1,14 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 export function detectIsMac(): boolean {
-  if (typeof navigator === "undefined") return true;
+  if (typeof navigator === 'undefined') return true;
 
   // userAgentData still experimental, not part of lib.dom.d.ts yet
   const uaData = (
     navigator as Navigator & { userAgentData?: { platform?: string } }
   ).userAgentData;
   const platform =
-    uaData?.platform ?? navigator.platform ?? navigator.userAgent ?? "";
+    uaData?.platform ?? navigator.platform ?? navigator.userAgent ?? '';
 
   return /mac|iphone|ipad|ipod/i.test(platform);
 }
@@ -27,5 +27,5 @@ export function isModifierEvent(e: {
 }
 
 export function isModifierKeyName(key: string): boolean {
-  return detectIsMac() ? key === "Meta" : key === "Control";
+  return detectIsMac() ? key === 'Meta' : key === 'Control';
 }

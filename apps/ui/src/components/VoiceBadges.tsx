@@ -1,9 +1,9 @@
-import { Badge } from "./ui/badge";
-import { Kbd } from "./ui/kbd";
-import VoiceEditor from "./VoiceEditor";
-import { useEffect, useRef, useState } from "react";
-import { useIsMac } from "#/lib/platform";
-import type { VoicePrefsForModel } from "@kontekst/dtos";
+import { Badge } from './ui/badge';
+import { Kbd } from './ui/kbd';
+import VoiceEditor from './VoiceEditor';
+import { useEffect, useRef, useState } from 'react';
+import { useIsMac } from '#/lib/platform';
+import type { VoicePrefsForModel } from '@kontekst/dtos';
 
 interface VoiceBadgesProps {
   voices: string[];
@@ -13,13 +13,13 @@ interface VoiceBadgesProps {
   modelId: string;
 }
 
-const MODIFIER_KEYS = new Set(["meta", "control", "shift", "alt"]);
+const MODIFIER_KEYS = new Set(['meta', 'control', 'shift', 'alt']);
 
 function parseShortcut(shortcut: string) {
-  const tokens = shortcut.toLowerCase().split("+");
+  const tokens = shortcut.toLowerCase().split('+');
   return {
-    mod: tokens.includes("cmd") || tokens.includes("ctrl"),
-    letters: tokens.filter((t) => !["cmd", "ctrl", "shift", "alt"].includes(t)),
+    mod: tokens.includes('cmd') || tokens.includes('ctrl'),
+    letters: tokens.filter((t) => !['cmd', 'ctrl', 'shift', 'alt'].includes(t)),
   };
 }
 
@@ -30,12 +30,12 @@ function ShortcutDisplay({
   shortcut: string;
   isMac: boolean;
 }) {
-  const keys = shortcut.split("+").map((k) => {
+  const keys = shortcut.split('+').map((k) => {
     const lower = k.toLowerCase();
-    if (lower === "cmd" || lower === "ctrl") return isMac ? "⌘" : "ctrl";
+    if (lower === 'cmd' || lower === 'ctrl') return isMac ? '⌘' : 'ctrl';
     return k;
   });
-  return <Kbd className="w-fit h-fit">{keys.join(" + ")}</Kbd>;
+  return <Kbd className="w-fit h-fit">{keys.join(' + ')}</Kbd>;
 }
 
 export default function VoiceBadges({
@@ -53,7 +53,7 @@ export default function VoiceBadges({
 
   useEffect(() => {
     if (isMac === null) return;
-    const modKeyName = isMac ? "Meta" : "Control";
+    const modKeyName = isMac ? 'Meta' : 'Control';
     const down = (e: KeyboardEvent) => {
       if (e.key === modKeyName) setIsModHeld(true);
     };
@@ -61,13 +61,13 @@ export default function VoiceBadges({
       if (e.key === modKeyName) setIsModHeld(false);
     };
     const blur = () => setIsModHeld(false);
-    document.addEventListener("keydown", down);
-    document.addEventListener("keyup", up);
-    window.addEventListener("blur", blur);
+    document.addEventListener('keydown', down);
+    document.addEventListener('keyup', up);
+    window.addEventListener('blur', blur);
     return () => {
-      document.removeEventListener("keydown", down);
-      document.removeEventListener("keyup", up);
-      window.removeEventListener("blur", blur);
+      document.removeEventListener('keydown', down);
+      document.removeEventListener('keyup', up);
+      window.removeEventListener('blur', blur);
     };
   }, [isMac]);
 
@@ -83,7 +83,7 @@ export default function VoiceBadges({
 
     const keydownHandler = (e: KeyboardEvent) => {
       const tag = document.activeElement?.tagName;
-      if (tag === "TEXTAREA" || tag === "INPUT") return;
+      if (tag === 'TEXTAREA' || tag === 'INPUT') return;
       const key = e.key.toLowerCase();
       if (MODIFIER_KEYS.has(key)) return;
       pressedKeys.add(key);
@@ -107,7 +107,7 @@ export default function VoiceBadges({
 
     const keyupHandler = (e: KeyboardEvent) => {
       const tag = document.activeElement?.tagName;
-      if (tag === "TEXTAREA" || tag === "INPUT") return;
+      if (tag === 'TEXTAREA' || tag === 'INPUT') return;
       const key = e.key.toLowerCase();
       if (MODIFIER_KEYS.has(key)) return;
 
@@ -129,18 +129,18 @@ export default function VoiceBadges({
       pressedKeys.delete(key);
     };
 
-    document.addEventListener("keydown", keydownHandler);
-    document.addEventListener("keyup", keyupHandler);
+    document.addEventListener('keydown', keydownHandler);
+    document.addEventListener('keyup', keyupHandler);
     return () => {
-      document.removeEventListener("keydown", keydownHandler);
-      document.removeEventListener("keyup", keyupHandler);
+      document.removeEventListener('keydown', keydownHandler);
+      document.removeEventListener('keyup', keyupHandler);
     };
   }, [prefs, onSelect, isMac, editingVoice]);
 
   if (voices.length === 0) return null;
 
   const defaultVoiceId = Object.entries(prefs).find(
-    ([, p]) => p.isDefault,
+    ([, p]) => p.isDefault
   )?.[0];
 
   return (
@@ -168,8 +168,8 @@ export default function VoiceBadges({
             }}
             onMouseEnter={() => setHoveredVoice(v)}
             onMouseLeave={() => setHoveredVoice(null)}
-            variant={selected === v ? "default" : "outline"}
-            className={`gap-1 font-mono ${isModHeld && hoveredVoice === v ? "cursor-alias opacity-70 ring-2 ring-ring/50" : "cursor-pointer"} ${selected === v ? "transition-opacity" : "transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] active:scale-95"}`}
+            variant={selected === v ? 'default' : 'outline'}
+            className={`gap-1 font-mono ${isModHeld && hoveredVoice === v ? 'cursor-alias opacity-70 ring-2 ring-ring/50' : 'cursor-pointer'} ${selected === v ? 'transition-opacity' : 'transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] active:scale-95'}`}
           >
             {isDefaultVoice && (
               <span

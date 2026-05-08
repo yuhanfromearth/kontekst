@@ -1,23 +1,23 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Eye, EyeOff, Plus, Trash2, Wallet, X } from "lucide-react";
-import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Check, Eye, EyeOff, Plus, Trash2, Wallet, X } from 'lucide-react';
+import { useState } from 'react';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "#/components/ui/popover";
-import { Button } from "#/components/ui/button";
-import { Input } from "#/components/ui/input";
-import { Spinner } from "#/components/ui/spinner";
-import { formatCost } from "#/lib/cost";
-import type { KeyInfo, KeyListItem } from "@kontekst/dtos";
+} from '#/components/ui/popover';
+import { Button } from '#/components/ui/button';
+import { Input } from '#/components/ui/input';
+import { Spinner } from '#/components/ui/spinner';
+import { formatCost } from '#/lib/cost';
+import type { KeyInfo, KeyListItem } from '@kontekst/dtos';
 
 export default function KeyUsageDisplay() {
   const queryClient = useQueryClient();
 
   const { data: keys = [], isPending: keysLoading } = useQuery<KeyListItem[]>({
-    queryKey: ["keys"],
-    queryFn: () => fetch("/api/keys").then((res) => res.json()),
+    queryKey: ['keys'],
+    queryFn: () => fetch('/api/keys').then((res) => res.json()),
   });
 
   const activeKey = keys.find((k) => k.isActive);
@@ -29,26 +29,26 @@ export default function KeyUsageDisplay() {
     isLoading: usageLoading,
     isError: usageError,
   } = useQuery<KeyInfo>({
-    queryKey: ["keyInfo"],
-    queryFn: () => fetch("/api/key").then((res) => res.json()),
+    queryKey: ['keyInfo'],
+    queryFn: () => fetch('/api/key').then((res) => res.json()),
     enabled: hasActive,
     refetchOnWindowFocus: true,
   });
 
   const invalidateAll = () => {
-    queryClient.invalidateQueries({ queryKey: ["keys"] });
-    queryClient.invalidateQueries({ queryKey: ["keyInfo"] });
-    queryClient.invalidateQueries({ queryKey: ["models"] });
+    queryClient.invalidateQueries({ queryKey: ['keys'] });
+    queryClient.invalidateQueries({ queryKey: ['keyInfo'] });
+    queryClient.invalidateQueries({ queryKey: ['models'] });
   };
 
   const setActive = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch("/api/keys/active", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/keys/active', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
       });
-      if (!res.ok) throw new Error("Failed to set active key");
+      if (!res.ok) throw new Error('Failed to set active key');
     },
     onSuccess: invalidateAll,
   });
@@ -56,40 +56,40 @@ export default function KeyUsageDisplay() {
   const deleteKey = useMutation({
     mutationFn: async (id: string) => {
       const res = await fetch(`/api/keys?id=${encodeURIComponent(id)}`, {
-        method: "DELETE",
+        method: 'DELETE',
       });
-      if (!res.ok) throw new Error("Failed to delete key");
+      if (!res.ok) throw new Error('Failed to delete key');
     },
     onSuccess: invalidateAll,
   });
 
   const addKey = useMutation({
     mutationFn: async (input: { label: string; key: string }) => {
-      const res = await fetch("/api/keys", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
       });
       if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as
-          | { message?: string }
-          | null;
-        throw new Error(body?.message ?? "Failed to add key");
+        const body = (await res.json().catch(() => null)) as {
+          message?: string;
+        } | null;
+        throw new Error(body?.message ?? 'Failed to add key');
       }
     },
     onSuccess: invalidateAll,
   });
 
   const [adding, setAdding] = useState(false);
-  const [newLabel, setNewLabel] = useState("");
-  const [newKey, setNewKey] = useState("");
+  const [newLabel, setNewLabel] = useState('');
+  const [newKey, setNewKey] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
 
   const resetForm = () => {
     setAdding(false);
-    setNewLabel("");
-    setNewKey("");
+    setNewLabel('');
+    setNewKey('');
     setShowKey(false);
     setAddError(null);
   };
@@ -100,7 +100,7 @@ export default function KeyUsageDisplay() {
       await addKey.mutateAsync({ label: newLabel.trim(), key: newKey.trim() });
       resetForm();
     } catch (err) {
-      setAddError(err instanceof Error ? err.message : "Failed to add key");
+      setAddError(err instanceof Error ? err.message : 'Failed to add key');
     }
   };
 
@@ -133,10 +133,13 @@ export default function KeyUsageDisplay() {
                 <Row label="Total spent" value={formatCost(usage.usage)} />
                 <Row label="Today" value={formatCost(usage.usageDaily)} />
                 <Row label="This week" value={formatCost(usage.usageWeekly)} />
-                <Row label="This month" value={formatCost(usage.usageMonthly)} />
+                <Row
+                  label="This month"
+                  value={formatCost(usage.usageMonthly)}
+                />
                 {usage.limit !== null && (
                   <Row
-                    label={`Remaining${usage.limitReset ? ` (${usage.limitReset})` : ""}`}
+                    label={`Remaining${usage.limitReset ? ` (${usage.limitReset})` : ''}`}
                     value={
                       usage.limitRemaining !== null
                         ? `${formatCost(usage.limitRemaining)} / ${formatCost(usage.limit)}`
@@ -169,7 +172,7 @@ export default function KeyUsageDisplay() {
                     disabled={k.isActive || setActive.isPending}
                   >
                     <Check
-                      className={`size-3 shrink-0 ${k.isActive ? "opacity-100" : "opacity-0"}`}
+                      className={`size-3 shrink-0 ${k.isActive ? 'opacity-100' : 'opacity-0'}`}
                     />
                     <span className="flex-1 truncate">{k.label}</span>
                     <span className="font-mono text-muted-foreground">
@@ -215,7 +218,7 @@ export default function KeyUsageDisplay() {
             />
             <div className="relative">
               <Input
-                type={showKey ? "text" : "password"}
+                type={showKey ? 'text' : 'password'}
                 placeholder="sk-or-v1-..."
                 value={newKey}
                 onChange={(e) => setNewKey(e.target.value)}
@@ -225,8 +228,8 @@ export default function KeyUsageDisplay() {
                 type="button"
                 onClick={() => setShowKey((v) => !v)}
                 className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                title={showKey ? "Hide" : "Show"}
-                aria-label={showKey ? "Hide key" : "Show key"}
+                title={showKey ? 'Hide' : 'Show'}
+                aria-label={showKey ? 'Hide key' : 'Show key'}
               >
                 {showKey ? (
                   <EyeOff className="size-3.5" />
@@ -235,9 +238,7 @@ export default function KeyUsageDisplay() {
                 )}
               </button>
             </div>
-            {addError && (
-              <p className="text-xs text-destructive">{addError}</p>
-            )}
+            {addError && <p className="text-xs text-destructive">{addError}</p>}
             <div className="flex gap-1.5">
               <Button
                 type="button"

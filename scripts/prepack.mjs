@@ -3,7 +3,7 @@
 // symlink) so `bundleDependencies` actually ships its files in the tarball.
 // Run via the `prepack` lifecycle hook; `postpack` restores the symlink.
 
-import { cpSync, lstatSync, mkdirSync, rmSync, symlinkSync } from 'node:fs';
+import { cpSync, lstatSync, mkdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 

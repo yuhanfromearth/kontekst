@@ -1,5 +1,5 @@
-import type { SpeechClip } from "@kontekst/dtos";
-import { Play, Trash2 } from "lucide-react";
+import type { SpeechClip } from '@kontekst/dtos';
+import { Play, Trash2 } from 'lucide-react';
 
 interface SpeechHistoryProps {
   clips: SpeechClip[];
@@ -11,7 +11,7 @@ interface SpeechHistoryProps {
 function fmtDuration(s: number): string {
   const m = Math.floor(s / 60);
   const sec = Math.floor(s % 60);
-  return `${m}:${String(sec).padStart(2, "0")}`;
+  return `${m}:${String(sec).padStart(2, '0')}`;
 }
 
 export default function SpeechHistory({
@@ -30,7 +30,7 @@ export default function SpeechHistory({
         <div
           key={clip.id}
           className={`group flex items-center gap-2 px-2 py-1.5 rounded-md border border-transparent hover:bg-accent transition-colors ${
-            activeId === clip.id ? "bg-accent" : ""
+            activeId === clip.id ? 'bg-accent' : ''
           }`}
         >
           <button

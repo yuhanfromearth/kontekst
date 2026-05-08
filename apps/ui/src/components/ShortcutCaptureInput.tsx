@@ -1,7 +1,7 @@
-import { useRef, useState } from "react";
-import { Input } from "#/components/ui/input";
-import { shortcutValidationError } from "#/lib/shortcut";
-import { useIsMac } from "#/lib/platform";
+import { useRef, useState } from 'react';
+import { Input } from '#/components/ui/input';
+import { shortcutValidationError } from '#/lib/shortcut';
+import { useIsMac } from '#/lib/platform';
 
 interface ShortcutCaptureInputProps {
   value: string;
@@ -15,30 +15,32 @@ export function ShortcutCaptureInput({
   onError,
 }: ShortcutCaptureInputProps) {
   const isMac = useIsMac();
-  const modKeyName = isMac ? "Meta" : "Control";
-  const modToken = isMac ? "cmd" : "ctrl";
-  const otherModKeys = isMac ? ["Control", "Shift", "Alt"] : ["Meta", "Shift", "Alt"];
+  const modKeyName = isMac ? 'Meta' : 'Control';
+  const modToken = isMac ? 'cmd' : 'ctrl';
+  const otherModKeys = isMac
+    ? ['Control', 'Shift', 'Alt']
+    : ['Meta', 'Shift', 'Alt'];
 
   const [capturing, setCapturing] = useState(false);
-  const [preview, setPreview] = useState("");
+  const [preview, setPreview] = useState('');
   const pressedLetters = useRef<Set<string>>(new Set());
   const modHeld = useRef(false);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     e.preventDefault();
 
-    if (e.key === "Escape") {
+    if (e.key === 'Escape') {
       pressedLetters.current.clear();
       modHeld.current = false;
-      setPreview("");
+      setPreview('');
       return;
     }
 
-    if (e.key === "Backspace" || e.key === "Delete") {
-      onChange("");
+    if (e.key === 'Backspace' || e.key === 'Delete') {
+      onChange('');
       onError(null);
       pressedLetters.current.clear();
-      setPreview("");
+      setPreview('');
       return;
     }
 
@@ -46,7 +48,7 @@ export function ShortcutCaptureInput({
       // Sticky toggle: press+release the modifier first, then the letter, so the
       // browser never sees Mod+letter as a chord (prevents new-tab, etc.)
       modHeld.current = !modHeld.current;
-      setPreview(modHeld.current ? `${modToken}+...` : "");
+      setPreview(modHeld.current ? `${modToken}+...` : '');
       return;
     }
 
@@ -66,24 +68,24 @@ export function ShortcutCaptureInput({
       onError(null);
       modHeld.current = false;
       pressedLetters.current.clear();
-      setPreview("");
+      setPreview('');
     } else {
       pressedLetters.current.add(key);
-      setPreview(Array.from(pressedLetters.current).sort().join("+"));
+      setPreview(Array.from(pressedLetters.current).sort().join('+'));
       onError(null);
     }
   };
 
   const handleKeyUp = (e: React.KeyboardEvent<HTMLInputElement>) => {
     // The modifier is sticky (handled on keydown); ignore modifier releases.
-    if (["Meta", "Control", "Shift", "Alt"].includes(e.key)) return;
+    if (['Meta', 'Control', 'Shift', 'Alt'].includes(e.key)) return;
 
     const key = e.key.toLowerCase();
     if (pressedLetters.current.has(key) && pressedLetters.current.size > 0) {
-      const sc = Array.from(pressedLetters.current).sort().join("+");
+      const sc = Array.from(pressedLetters.current).sort().join('+');
       onChange(sc);
       pressedLetters.current.clear();
-      setPreview("");
+      setPreview('');
     }
   };
 
@@ -92,7 +94,7 @@ export function ShortcutCaptureInput({
     pressedLetters.current.clear();
     if (modHeld.current) {
       modHeld.current = false;
-      setPreview("");
+      setPreview('');
     }
   };
 
@@ -108,7 +110,7 @@ export function ShortcutCaptureInput({
       onKeyUp={handleKeyUp}
       onFocus={() => setCapturing(true)}
       onBlur={handleBlur}
-      className={capturing ? "ring-2 ring-ring" : ""}
+      className={capturing ? 'ring-2 ring-ring' : ''}
     />
   );
 }

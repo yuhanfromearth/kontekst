@@ -1,8 +1,8 @@
-import { Badge } from "./ui/badge";
-import { Kbd } from "./ui/kbd";
-import { useEffect, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
-import { useIsMac } from "#/lib/platform";
+import { Badge } from './ui/badge';
+import { Kbd } from './ui/kbd';
+import { useEffect, useState } from 'react';
+import { useNavigate } from '@tanstack/react-router';
+import { useIsMac } from '#/lib/platform';
 
 interface KontekstDisplayProps {
   kontekstList: string[];
@@ -13,15 +13,15 @@ interface KontekstDisplayProps {
   defaultKontekst?: string | null;
 }
 
-const MODIFIER_KEYS = new Set(["meta", "control", "shift", "alt"]);
+const MODIFIER_KEYS = new Set(['meta', 'control', 'shift', 'alt']);
 
 function parseShortcut(shortcut: string) {
-  const tokens = shortcut.toLowerCase().split("+");
+  const tokens = shortcut.toLowerCase().split('+');
   return {
-    mod: tokens.includes("cmd") || tokens.includes("ctrl"),
-    shift: tokens.includes("shift"),
-    alt: tokens.includes("alt"),
-    letters: tokens.filter((t) => !["cmd", "ctrl", "shift", "alt"].includes(t)),
+    mod: tokens.includes('cmd') || tokens.includes('ctrl'),
+    shift: tokens.includes('shift'),
+    alt: tokens.includes('alt'),
+    letters: tokens.filter((t) => !['cmd', 'ctrl', 'shift', 'alt'].includes(t)),
   };
 }
 
@@ -32,14 +32,14 @@ function ShortcutDisplay({
   shortcut: string;
   isMac: boolean;
 }) {
-  const keys = shortcut.split("+").map((k) => {
+  const keys = shortcut.split('+').map((k) => {
     const lower = k.toLowerCase();
-    if (lower === "cmd" || lower === "ctrl") return isMac ? "⌘" : "ctrl";
+    if (lower === 'cmd' || lower === 'ctrl') return isMac ? '⌘' : 'ctrl';
     return k;
   });
   return (
     <>
-      <Kbd className="w-fit h-fit">{keys.join(" + ")}</Kbd>
+      <Kbd className="w-fit h-fit">{keys.join(' + ')}</Kbd>
     </>
   );
 }
@@ -66,7 +66,7 @@ export default function KontekstDisplay({
   }, [defaultKontekst]);
 
   useEffect(() => {
-    const modKeyName = isMac ? "Meta" : "Control";
+    const modKeyName = isMac ? 'Meta' : 'Control';
     const down = (e: KeyboardEvent) => {
       if (e.key === modKeyName) setIsModHeld(true);
     };
@@ -74,14 +74,14 @@ export default function KontekstDisplay({
       if (e.key === modKeyName) setIsModHeld(false);
     };
     const blur = () => setIsModHeld(false);
-    document.addEventListener("keydown", down);
-    document.addEventListener("keyup", up);
-    window.addEventListener("blur", blur);
+    document.addEventListener('keydown', down);
+    document.addEventListener('keyup', up);
+    window.addEventListener('blur', blur);
 
     return () => {
-      document.removeEventListener("keydown", down);
-      document.removeEventListener("keyup", up);
-      window.removeEventListener("blur", blur);
+      document.removeEventListener('keydown', down);
+      document.removeEventListener('keyup', up);
+      window.removeEventListener('blur', blur);
     };
   }, [isMac]);
 
@@ -93,8 +93,8 @@ export default function KontekstDisplay({
     const isModEvent = (e: KeyboardEvent) => (isMac ? e.metaKey : e.ctrlKey);
 
     const keydownHandler = (e: KeyboardEvent) => {
-      if (document.activeElement?.tagName === "TEXTAREA") return;
-      if (document.activeElement?.tagName === "INPUT") return;
+      if (document.activeElement?.tagName === 'TEXTAREA') return;
+      if (document.activeElement?.tagName === 'INPUT') return;
 
       const key = e.key.toLowerCase();
       if (MODIFIER_KEYS.has(key)) return;
@@ -120,8 +120,8 @@ export default function KontekstDisplay({
     };
 
     const keyupHandler = (e: KeyboardEvent) => {
-      if (document.activeElement?.tagName === "TEXTAREA") return;
-      if (document.activeElement?.tagName === "INPUT") return;
+      if (document.activeElement?.tagName === 'TEXTAREA') return;
+      if (document.activeElement?.tagName === 'INPUT') return;
 
       const key = e.key.toLowerCase();
       if (MODIFIER_KEYS.has(key)) return;
@@ -146,11 +146,11 @@ export default function KontekstDisplay({
       pressedKeys.delete(key);
     };
 
-    document.addEventListener("keydown", keydownHandler);
-    document.addEventListener("keyup", keyupHandler);
+    document.addEventListener('keydown', keydownHandler);
+    document.addEventListener('keyup', keyupHandler);
     return () => {
-      document.removeEventListener("keydown", keydownHandler);
-      document.removeEventListener("keyup", keyupHandler);
+      document.removeEventListener('keydown', keydownHandler);
+      document.removeEventListener('keyup', keyupHandler);
     };
   }, [shortcuts, onSelect, selected, isMac]);
 
@@ -165,7 +165,7 @@ export default function KontekstDisplay({
             const modClick = isMac ? e.metaKey : e.ctrlKey;
             if (modClick) {
               e.preventDefault();
-              navigate({ to: "/kontekst/$name", params: { name: kontekst } });
+              navigate({ to: '/kontekst/$name', params: { name: kontekst } });
             } else if (selected === kontekst) {
               onSelect(undefined);
             } else {
@@ -174,14 +174,11 @@ export default function KontekstDisplay({
           }}
           onMouseEnter={() => setHoveredKontekst(kontekst)}
           onMouseLeave={() => setHoveredKontekst(null)}
-          variant={selected === kontekst ? "default" : "outline"}
-          className={`gap-1 font-mono ${isModHeld && hoveredKontekst === kontekst ? "cursor-alias opacity-70 ring-2 ring-ring/50" : "cursor-pointer"} ${selected === kontekst ? "transition-opacity" : "transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] active:scale-95"}`}
+          variant={selected === kontekst ? 'default' : 'outline'}
+          className={`gap-1 font-mono ${isModHeld && hoveredKontekst === kontekst ? 'cursor-alias opacity-70 ring-2 ring-ring/50' : 'cursor-pointer'} ${selected === kontekst ? 'transition-opacity' : 'transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] active:scale-95'}`}
         >
           {defaultKontekst === kontekst && (
-            <span
-              className="text-muted-foreground/80"
-              title="Default kontekst"
-            >
+            <span className="text-muted-foreground/80" title="Default kontekst">
               ★
             </span>
           )}
@@ -196,7 +193,7 @@ export default function KontekstDisplay({
         variant="outline"
         className="cursor-pointer font-mono hover:bg-accent transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110 active:scale-95"
         onClick={() =>
-          navigate({ to: "/kontekst/$name", params: { name: "new" } })
+          navigate({ to: '/kontekst/$name', params: { name: 'new' } })
         }
       >
         +

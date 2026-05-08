@@ -1,10 +1,16 @@
-import { createContext, useCallback, useContext, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useRef,
+  useState,
+} from 'react';
 import type {
   ConversationDto,
   Message,
   ModelDto,
   TokenUsage,
-} from "@kontekst/dtos";
+} from '@kontekst/dtos';
 
 interface ConversationState {
   messages: Message[];
@@ -28,7 +34,7 @@ interface ConversationState {
 }
 
 const ConversationContext = createContext<ConversationState | undefined>(
-  undefined,
+  undefined
 );
 
 export function ConversationProvider({
@@ -43,19 +49,16 @@ export function ConversationProvider({
   const [selectedKontekst, setSelectedKontekst] = useState<
     string | undefined
   >();
-  const [selectedModel, setSelectedModel] = useState("");
+  const [selectedModel, setSelectedModel] = useState('');
   const [selectedModelDto, setSelectedModelDto] = useState<
     ModelDto | undefined
   >();
   const [modelContextLength, setModelContextLength] = useState(0);
   const streamCancellerRef = useRef<(() => void) | null>(null);
 
-  const registerStreamCanceller = useCallback(
-    (cancel: (() => void) | null) => {
-      streamCancellerRef.current = cancel;
-    },
-    [],
-  );
+  const registerStreamCanceller = useCallback((cancel: (() => void) | null) => {
+    streamCancellerRef.current = cancel;
+  }, []);
 
   const loadConversation = (dto: ConversationDto) => {
     streamCancellerRef.current?.();
@@ -99,7 +102,7 @@ export function ConversationProvider({
 export function useConversation() {
   const ctx = useContext(ConversationContext);
   if (!ctx)
-    throw new Error("useConversation must be used within ConversationProvider");
+    throw new Error('useConversation must be used within ConversationProvider');
 
   return ctx;
 }

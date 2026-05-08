@@ -1,18 +1,18 @@
-import type { TtsModel } from "@kontekst/dtos";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { ChevronDown, Star } from "lucide-react";
+import type { TtsModel } from '@kontekst/dtos';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { ChevronDown, Star } from 'lucide-react';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "#/components/ui/popover";
-import { Input } from "#/components/ui/input";
+} from '#/components/ui/popover';
+import { Input } from '#/components/ui/input';
 import {
   getDefaultTtsModel,
   listTtsModels,
   setDefaultTtsModel,
-} from "#/lib/speechClient";
+} from '#/lib/speechClient';
 
 interface TtsModelSelectorProps {
   selected: TtsModel;
@@ -21,7 +21,7 @@ interface TtsModelSelectorProps {
 
 function formatPrice(perToken: string): string {
   const usd = parseFloat(perToken) * 1_000_000;
-  if (!isFinite(usd) || usd === 0) return "free";
+  if (!isFinite(usd) || usd === 0) return 'free';
   return `$${usd.toFixed(2)}/M`;
 }
 
@@ -30,27 +30,29 @@ export default function TtsModelSelector({
   onSelect,
 }: TtsModelSelectorProps) {
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
   const queryClient = useQueryClient();
 
   const { data: models = [] } = useQuery<TtsModel[]>({
-    queryKey: ["tts-models"],
+    queryKey: ['tts-models'],
     queryFn: listTtsModels,
   });
 
   const { data: defaultModel } = useQuery<TtsModel | null>({
-    queryKey: ["tts-models", "default"],
+    queryKey: ['tts-models', 'default'],
     queryFn: getDefaultTtsModel,
     enabled: open,
   });
 
   async function markDefault(modelId: string) {
     await setDefaultTtsModel(modelId);
-    await queryClient.invalidateQueries({ queryKey: ["tts-models", "default"] });
+    await queryClient.invalidateQueries({
+      queryKey: ['tts-models', 'default'],
+    });
   }
 
   const filtered = models.filter((m) =>
-    m.name.toLowerCase().includes(search.toLowerCase()),
+    m.name.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -73,7 +75,7 @@ export default function TtsModelSelector({
             return (
               <div
                 key={m.id}
-                className={`group flex items-center rounded ${selected.id === m.id ? "bg-accent" : ""}`}
+                className={`group flex items-center rounded ${selected.id === m.id ? 'bg-accent' : ''}`}
               >
                 <button
                   type="button"
@@ -94,8 +96,8 @@ export default function TtsModelSelector({
                 </button>
                 <button
                   type="button"
-                  title={isDefault ? "Default TTS model" : "Set as default"}
-                  className={`mr-1 p-1 rounded transition-colors ${isDefault ? "text-foreground" : "text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-foreground"}`}
+                  title={isDefault ? 'Default TTS model' : 'Set as default'}
+                  className={`mr-1 p-1 rounded transition-colors ${isDefault ? 'text-foreground' : 'text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-foreground'}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     if (!isDefault) markDefault(m.id);
@@ -103,7 +105,7 @@ export default function TtsModelSelector({
                 >
                   <Star
                     className="size-3.5"
-                    fill={isDefault ? "currentColor" : "none"}
+                    fill={isDefault ? 'currentColor' : 'none'}
                   />
                 </button>
               </div>

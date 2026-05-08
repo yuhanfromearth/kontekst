@@ -1,29 +1,29 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { ArrowLeft } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef, useState } from 'react';
 import {
   Card,
   CardContent,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "#/components/ui/card";
-import { Label } from "#/components/ui/label";
-import { Input } from "#/components/ui/input";
-import { Textarea } from "#/components/ui/textarea";
-import { Button } from "#/components/ui/button";
-import { Checkbox } from "#/components/ui/checkbox";
-import { ShortcutCaptureInput } from "#/components/ShortcutCaptureInput";
+} from '#/components/ui/card';
+import { Label } from '#/components/ui/label';
+import { Input } from '#/components/ui/input';
+import { Textarea } from '#/components/ui/textarea';
+import { Button } from '#/components/ui/button';
+import { Checkbox } from '#/components/ui/checkbox';
+import { ShortcutCaptureInput } from '#/components/ShortcutCaptureInput';
 import {
   isValidShortcut,
   shortcutHint,
   shortcutValidationError,
-} from "#/lib/shortcut";
-import { useIsMac } from "#/lib/platform";
-import type { KontekstDto } from "@kontekst/dtos";
+} from '#/lib/shortcut';
+import { useIsMac } from '#/lib/platform';
+import type { KontekstDto } from '@kontekst/dtos';
 
-export const Route = createFileRoute("/kontekst/$name")({
+export const Route = createFileRoute('/kontekst/$name')({
   component: KontekstEditPage,
 });
 
@@ -34,26 +34,26 @@ function KontekstEditPage() {
   const isMac = useIsMac();
 
   const { data, isLoading, isError } = useQuery<KontekstDto>({
-    queryKey: ["kontekst", name],
+    queryKey: ['kontekst', name],
     queryFn: () =>
       fetch(`/api/kontekst?name=${encodeURIComponent(name)}`).then((res) =>
-        res.json(),
+        res.json()
       ),
   });
 
   const { data: savedDefault } = useQuery<string | null>({
-    queryKey: ["konteksts", "default"],
+    queryKey: ['konteksts', 'default'],
     queryFn: async () => {
-      const res = await fetch("/api/konteksts/default");
-      if (!res.ok) throw new Error("Failed to fetch default kontekst");
+      const res = await fetch('/api/konteksts/default');
+      if (!res.ok) throw new Error('Failed to fetch default kontekst');
       const data: { name: string | null } = await res.json();
       return data.name;
     },
   });
 
   const [editableName, setEditableName] = useState(name);
-  const [kontekst, setKontekst] = useState("");
-  const [shortcut, setShortcut] = useState("");
+  const [kontekst, setKontekst] = useState('');
+  const [shortcut, setShortcut] = useState('');
   const [isDefault, setIsDefault] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
   const [contentError, setContentError] = useState<string | null>(null);
@@ -63,11 +63,11 @@ function KontekstEditPage() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") navigate({ to: "/" });
+      if (e.key === 'Escape') navigate({ to: '/' });
     };
-    document.addEventListener("keydown", handler);
+    document.addEventListener('keydown', handler);
 
-    return () => document.removeEventListener("keydown", handler);
+    return () => document.removeEventListener('keydown', handler);
   }, [navigate]);
 
   useEffect(() => {
@@ -79,15 +79,15 @@ function KontekstEditPage() {
       }
     };
 
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, [confirmDelete]);
 
   useEffect(() => {
     if (data) {
-      setKontekst(data.kontekst ?? "");
-      setShortcut(data.shortcut ?? "");
-      if (data.kontekst === undefined) setEditableName("");
+      setKontekst(data.kontekst ?? '');
+      setShortcut(data.shortcut ?? '');
+      if (data.kontekst === undefined) setEditableName('');
     }
   }, [data]);
 
@@ -113,31 +113,31 @@ function KontekstEditPage() {
 
       let valid = true;
       if (!editableName.trim()) {
-        setNameError("Name must contain at least 1 character.");
+        setNameError('Name must contain at least 1 character.');
         valid = false;
       }
       if (!kontekst.trim()) {
-        setContentError("Content must contain at least 1 character.");
+        setContentError('Content must contain at least 1 character.');
         valid = false;
       }
       if (!isValidShortcut(shortcut)) {
         setShortcutError(shortcutValidationError());
         valid = false;
       }
-      if (!valid) throw new Error("Validation failed");
+      if (!valid) throw new Error('Validation failed');
 
       if (!isNew && editableName !== name) {
-        const res = await fetch("/api/kontekst", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+        const res = await fetch('/api/kontekst', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name, newName: editableName }),
         });
-        if (!res.ok) throw new Error("Rename failed");
+        if (!res.ok) throw new Error('Rename failed');
       }
 
-      const res = await fetch("/api/kontekst", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/kontekst', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: editableName,
           content: kontekst,
@@ -152,22 +152,22 @@ function KontekstEditPage() {
       }
 
       if (isDefault) {
-        const defaultRes = await fetch("/api/konteksts/default", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        const defaultRes = await fetch('/api/konteksts/default', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: editableName }),
         });
         if (!defaultRes.ok) {
           const body = await defaultRes.json().catch(() => null);
-          throw new Error(body?.message ?? "Failed to set as default");
+          throw new Error(body?.message ?? 'Failed to set as default');
         }
       } else if (wasDefault) {
-        const defaultRes = await fetch("/api/konteksts/default", {
-          method: "DELETE",
+        const defaultRes = await fetch('/api/konteksts/default', {
+          method: 'DELETE',
         });
         if (!defaultRes.ok) {
           const body = await defaultRes.json().catch(() => null);
-          throw new Error(body?.message ?? "Failed to clear default");
+          throw new Error(body?.message ?? 'Failed to clear default');
         }
       }
     },
@@ -176,12 +176,12 @@ function KontekstEditPage() {
       // Tell the query cache the kontekst list is stale so the home page
       // immediately refetches it. Without this, the cached (old) list would
       // be used after setting a new default and the wrong kontekst would appear selected.
-      queryClient.invalidateQueries({ queryKey: ["konteksts"] });
-      queryClient.invalidateQueries({ queryKey: ["konteksts", "default"] });
-      navigate({ to: "/" });
+      queryClient.invalidateQueries({ queryKey: ['konteksts'] });
+      queryClient.invalidateQueries({ queryKey: ['konteksts', 'default'] });
+      navigate({ to: '/' });
     },
     onError: (error) => {
-      if (error.message.includes("already assigned")) {
+      if (error.message.includes('already assigned')) {
         setShortcutError(error.message);
       }
     },
@@ -190,18 +190,18 @@ function KontekstEditPage() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const mod = isMac ? e.metaKey : e.ctrlKey;
-      if (mod && e.key === "Enter") saveKontekst();
+      if (mod && e.key === 'Enter') saveKontekst();
     };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
   }, [saveKontekst, isMac]);
 
   const { mutate: deleteKontekst, isPending: isDeleting } = useMutation({
     mutationFn: () =>
       fetch(`/api/kontekst?name=${encodeURIComponent(name)}`, {
-        method: "DELETE",
+        method: 'DELETE',
       }),
-    onSuccess: () => navigate({ to: "/" }),
+    onSuccess: () => navigate({ to: '/' }),
   });
 
   if (isLoading) return <p>Loading...</p>;
@@ -212,7 +212,7 @@ function KontekstEditPage() {
       <div className="max-w-lg mx-auto w-full">
         <button
           type="button"
-          onClick={() => navigate({ to: "/" })}
+          onClick={() => navigate({ to: '/' })}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4 -ml-0.5"
         >
           <ArrowLeft className="size-4" />
@@ -223,7 +223,7 @@ function KontekstEditPage() {
         <CardHeader>
           <CardTitle>
             {isNew ? (
-              "Create new Kontekst"
+              'Create new Kontekst'
             ) : (
               <>
                 Edit <span className="font-mono">{name}</span>
@@ -314,11 +314,11 @@ function KontekstEditPage() {
               )}
             </div>
           )}
-          <Button variant="outline" onClick={() => navigate({ to: "/" })}>
+          <Button variant="outline" onClick={() => navigate({ to: '/' })}>
             Cancel
           </Button>
           <Button onClick={() => saveKontekst()} disabled={isPending}>
-            {isNew ? "Create" : "Update"}
+            {isNew ? 'Create' : 'Update'}
           </Button>
         </CardFooter>
       </Card>

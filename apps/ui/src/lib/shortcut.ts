@@ -1,7 +1,7 @@
-import { detectIsMac } from "./platform";
+import { detectIsMac } from './platform';
 
 function modName(): string {
-  return detectIsMac() ? "Cmd" : "Ctrl";
+  return detectIsMac() ? 'Cmd' : 'Ctrl';
 }
 
 export function shortcutHint(): string {

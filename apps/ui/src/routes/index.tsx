@@ -1,27 +1,27 @@
-import KontekstDisplay from "#/components/KontekstDisplay";
-import KontekstLogo from "#/components/KontekstLogo";
-import ConversationDisplay from "#/components/ConversationDisplay";
-import ConversationHistory from "#/components/ConversationHistory";
-import KeyUsageDisplay from "#/components/KeyUsageDisplay";
-import ModelSelector from "#/components/ModelSelector";
-import ThemeToggle from "#/components/ThemeToggle";
-import { Button } from "#/components/ui/button";
-import { Textarea } from "#/components/ui/textarea";
-import ModeToggle from "#/components/ModeToggle";
-import type { KeyListItem, ModelDto } from "@kontekst/dtos";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { formatCost } from "#/lib/cost";
-import { formatTokens } from "#/lib/tokens";
-import { streamChat } from "#/lib/chatStream";
-import { isModifierEvent } from "#/lib/platform";
-import { useEffect, useRef, useState } from "react";
-import { useConversation } from "#/components/ConversationContext";
+import KontekstDisplay from '#/components/KontekstDisplay';
+import KontekstLogo from '#/components/KontekstLogo';
+import ConversationDisplay from '#/components/ConversationDisplay';
+import ConversationHistory from '#/components/ConversationHistory';
+import KeyUsageDisplay from '#/components/KeyUsageDisplay';
+import ModelSelector from '#/components/ModelSelector';
+import ThemeToggle from '#/components/ThemeToggle';
+import { Button } from '#/components/ui/button';
+import { Textarea } from '#/components/ui/textarea';
+import ModeToggle from '#/components/ModeToggle';
+import type { KeyListItem, ModelDto } from '@kontekst/dtos';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { formatCost } from '#/lib/cost';
+import { formatTokens } from '#/lib/tokens';
+import { streamChat } from '#/lib/chatStream';
+import { isModifierEvent } from '#/lib/platform';
+import { useEffect, useRef, useState } from 'react';
+import { useConversation } from '#/components/ConversationContext';
 
-export const Route = createFileRoute("/")({ component: App });
+export const Route = createFileRoute('/')({ component: App });
 
 function App() {
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState('');
   const {
     messages,
     setMessages,
@@ -62,15 +62,15 @@ function App() {
   }, [registerStreamCanceller]);
 
   const { data: keys = [], isPending: keysLoading } = useQuery<KeyListItem[]>({
-    queryKey: ["keys"],
-    queryFn: () => fetch("/api/keys").then((res) => res.json()),
+    queryKey: ['keys'],
+    queryFn: () => fetch('/api/keys').then((res) => res.json()),
   });
   const hasActiveKey = keys.some((k) => k.isActive);
   const showNoKey = !keysLoading && !hasActiveKey;
 
   const { data: defaultModel } = useQuery<ModelDto>({
-    queryKey: ["models", "default"],
-    queryFn: () => fetch("/api/models/default").then((res) => res.json()),
+    queryKey: ['models', 'default'],
+    queryFn: () => fetch('/api/models/default').then((res) => res.json()),
     enabled: hasActiveKey,
   });
 
@@ -84,11 +84,11 @@ function App() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+      if (e.key === 'Escape') {
         textareaRef.current?.blur();
       }
 
-      if (isModifierEvent(e) && e.shiftKey && e.key.toLowerCase() === "k") {
+      if (isModifierEvent(e) && e.shiftKey && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         if (messagesRef.current.length > 0) newChat();
         return;
@@ -97,14 +97,14 @@ function App() {
       // skip if already typing in an input
       if (document.activeElement === textareaRef.current) return;
 
-      if (e.key === "/") {
+      if (e.key === '/') {
         e.preventDefault();
         textareaRef.current?.focus();
       }
     };
 
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
   }, []);
 
   const [chatError, setChatError] = useState<string | undefined>();
@@ -131,19 +131,19 @@ function App() {
     let assistantStarted = false;
     const rollback = () => {
       setMessages((prev) =>
-        assistantStarted ? prev.slice(0, -2) : prev.slice(0, -1),
+        assistantStarted ? prev.slice(0, -2) : prev.slice(0, -1)
       );
     };
 
     try {
       for await (const evt of streamChat(payload, controller.signal)) {
         switch (evt.type) {
-          case "piece":
+          case 'piece':
             if (!assistantStarted) {
               assistantStarted = true;
               setMessages((prev) => [
                 ...prev,
-                { role: "assistant", content: "" },
+                { role: 'assistant', content: '' },
               ]);
             }
             setMessages((prev) => {
@@ -156,24 +156,24 @@ function App() {
               return next;
             });
             break;
-          case "meta":
+          case 'meta':
             setConversationId(evt.conversationId);
-            queryClient.invalidateQueries({ queryKey: ["conversations"] });
+            queryClient.invalidateQueries({ queryKey: ['conversations'] });
             break;
-          case "title":
-            queryClient.invalidateQueries({ queryKey: ["conversations"] });
+          case 'title':
+            queryClient.invalidateQueries({ queryKey: ['conversations'] });
             break;
-          case "usage":
+          case 'usage':
             setTokenUsage(evt.usage);
             setConversationCost((prev) => prev + evt.usage.cost);
-            queryClient.invalidateQueries({ queryKey: ["keyInfo"] });
-            queryClient.invalidateQueries({ queryKey: ["conversations"] });
+            queryClient.invalidateQueries({ queryKey: ['keyInfo'] });
+            queryClient.invalidateQueries({ queryKey: ['conversations'] });
             break;
-          case "error":
+          case 'error':
             setChatError(evt.message);
             rollback();
             break;
-          case "done":
+          case 'done':
             break;
         }
       }
@@ -184,27 +184,27 @@ function App() {
   };
 
   const { data: shortcuts } = useQuery<Record<string, string>>({
-    queryKey: ["shortcuts"],
-    queryFn: () => fetch("/api/shortcuts").then((res) => res.json()),
+    queryKey: ['shortcuts'],
+    queryFn: () => fetch('/api/shortcuts').then((res) => res.json()),
   });
 
   const { data: kontekstList = [], isError: kontekstError } = useQuery<
     string[]
   >({
-    queryKey: ["konteksts"],
+    queryKey: ['konteksts'],
     queryFn: async () => {
-      const res = await fetch("/api/konteksts");
-      if (!res.ok) throw new Error("Failed to fetch konteksts");
+      const res = await fetch('/api/konteksts');
+      if (!res.ok) throw new Error('Failed to fetch konteksts');
       const data = await res.json();
       return Array.isArray(data) ? data : [];
     },
   });
 
   const { data: defaultKontekst } = useQuery<string | null>({
-    queryKey: ["konteksts", "default"],
+    queryKey: ['konteksts', 'default'],
     queryFn: async () => {
-      const res = await fetch("/api/konteksts/default");
-      if (!res.ok) throw new Error("Failed to fetch default kontekst");
+      const res = await fetch('/api/konteksts/default');
+      if (!res.ok) throw new Error('Failed to fetch default kontekst');
       const data: { name: string | null } = await res.json();
       return data.name;
     },
@@ -213,8 +213,8 @@ function App() {
   const submit = () => {
     if (!input) return;
     const userMessage = input;
-    setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
-    setInput("");
+    setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
+    setInput('');
     setChatError(undefined);
     void runStream({
       message: userMessage,
@@ -242,7 +242,7 @@ function App() {
           <ThemeToggle />
           <button
             type="button"
-            onClick={() => navigate({ to: "/shortcuts" })}
+            onClick={() => navigate({ to: '/shortcuts' })}
             className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
             title="Keyboard shortcuts"
             aria-label="Keyboard shortcuts"
@@ -276,10 +276,10 @@ function App() {
             )}
             {tokenUsage && modelContextLength > 0 && (
               <span>
-                {formatTokens(tokenUsage.totalTokens)} /{" "}
+                {formatTokens(tokenUsage.totalTokens)} /{' '}
                 {formatTokens(modelContextLength)} (
                 {Math.round(
-                  (tokenUsage.totalTokens / modelContextLength) * 100,
+                  (tokenUsage.totalTokens / modelContextLength) * 100
                 )}
                 %)
               </span>
@@ -295,7 +295,7 @@ function App() {
         <Textarea
           ref={textareaRef}
           placeholder={
-            showNoKey ? "Add an API key first…" : "How can I help you? [/]"
+            showNoKey ? 'Add an API key first…' : 'How can I help you? [/]'
           }
           value={input}
           disabled={showNoKey}
@@ -304,7 +304,7 @@ function App() {
             setChatError(undefined);
           }}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey && input.trim() !== "") {
+            if (e.key === 'Enter' && !e.shiftKey && input.trim() !== '') {
               e.preventDefault();
               submit();
             }

@@ -27,7 +27,11 @@
     "start": "npm run build:dtos && concurrently -n dtos,be,ui -c yellow,blue,magenta \"npm run dev --workspace=dtos\" \"npm run start:dev --workspace=apps/be\" \"npm run dev --workspace=apps/ui\"",
     "start:prod": "npm run build && node bin/kontekst.mjs",
     "prepack": "npm run build && node scripts/prepack.mjs",
-    "postpack": "node scripts/postpack.mjs"
+    "postpack": "node scripts/postpack.mjs",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@kontekst/dtos": "0.1.0",

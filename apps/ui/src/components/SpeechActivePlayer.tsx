@@ -1,8 +1,8 @@
-import type { SpeechClip } from "@kontekst/dtos";
-import { Download, Pause, Play, RotateCcw, RotateCw, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Dialog, DialogClose, DialogContent } from "#/components/ui/dialog";
-import { clipAudioUrl } from "#/lib/speechClient";
+import type { SpeechClip } from '@kontekst/dtos';
+import { Download, Pause, Play, RotateCcw, RotateCw, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Dialog, DialogClose, DialogContent } from '#/components/ui/dialog';
+import { clipAudioUrl } from '#/lib/speechClient';
 
 interface SpeechPlayerDialogProps {
   clip: SpeechClip | null;
@@ -17,7 +17,7 @@ function fmtTime(s: number): string {
   if (!isFinite(s) || s < 0) s = 0;
   const m = Math.floor(s / 60);
   const sec = Math.floor(s % 60);
-  return `${m}:${String(sec).padStart(2, "0")}`;
+  return `${m}:${String(sec).padStart(2, '0')}`;
 }
 
 function deterministicBars(seed: string, count: number): number[] {
@@ -51,7 +51,7 @@ export default function SpeechPlayerDialog({
 
   const bars = useMemo(
     () => (clip ? deterministicBars(clip.id + clip.text, BAR_COUNT) : []),
-    [clip?.id, clip?.text],
+    [clip?.id, clip?.text]
   );
 
   useEffect(() => {
@@ -85,20 +85,20 @@ export default function SpeechPlayerDialog({
     const handler = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       const tag = target?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA") return;
-      if (e.key === " ") {
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.key === ' ') {
         e.preventDefault();
         togglePlay();
-      } else if (e.key === "ArrowLeft") {
+      } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
         skip(-5);
-      } else if (e.key === "ArrowRight") {
+      } else if (e.key === 'ArrowRight') {
         e.preventDefault();
         skip(5);
       }
     };
-    document.addEventListener("keydown", handler, true);
-    return () => document.removeEventListener("keydown", handler, true);
+    document.addEventListener('keydown', handler, true);
+    return () => document.removeEventListener('keydown', handler, true);
   }, [open]);
 
   const liveDuration = (): number => {
@@ -165,20 +165,20 @@ export default function SpeechPlayerDialog({
     };
     const up = () => {
       setScrubbing(false);
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-      window.removeEventListener("pointercancel", up);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
     };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
-    window.addEventListener("pointercancel", up);
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
   };
 
   const progress = duration > 0 ? Math.min(1, currentTime / duration) : 0;
-  const text = clip?.text ?? "";
+  const text = clip?.text ?? '';
   const isLong = text.length > TEXT_PREVIEW;
   const shownText =
-    !isLong || expanded ? text : text.slice(0, TEXT_PREVIEW).trimEnd() + "…";
+    !isLong || expanded ? text : text.slice(0, TEXT_PREVIEW).trimEnd() + '…';
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -208,18 +208,18 @@ export default function SpeechPlayerDialog({
                   className="w-1.5 h-1.5 rounded-full"
                   style={{
                     background: isPlaying
-                      ? "oklch(0.6 0.18 265)"
-                      : "var(--muted-foreground)",
+                      ? 'oklch(0.6 0.18 265)'
+                      : 'var(--muted-foreground)',
                     animation: isPlaying
-                      ? "pulse 1.4s ease-in-out infinite"
-                      : "none",
+                      ? 'pulse 1.4s ease-in-out infinite'
+                      : 'none',
                   }}
                 />
                 {isPlaying
-                  ? "playing"
+                  ? 'playing'
                   : progress > 0 && progress < 1
-                    ? "paused"
-                    : "ready"}
+                    ? 'paused'
+                    : 'ready'}
               </span>
               <span className="opacity-50 text-muted-foreground text-xs">
                 ·
@@ -266,10 +266,10 @@ export default function SpeechPlayerDialog({
                     style={{
                       height: `${Math.round(b * 56) + 4}px`,
                       background: reached
-                        ? "var(--foreground)"
-                        : "var(--border)",
+                        ? 'var(--foreground)'
+                        : 'var(--border)',
                       opacity: reached ? 1 : 0.8,
-                      transition: scrubbing ? "none" : "background 80ms linear",
+                      transition: scrubbing ? 'none' : 'background 80ms linear',
                     }}
                   />
                 );
@@ -295,8 +295,8 @@ export default function SpeechPlayerDialog({
               <button
                 type="button"
                 onClick={togglePlay}
-                title={isPlaying ? "Pause (space)" : "Play (space)"}
-                aria-label={isPlaying ? "Pause" : "Play"}
+                title={isPlaying ? 'Pause (space)' : 'Play (space)'}
+                aria-label={isPlaying ? 'Pause' : 'Play'}
                 className="flex items-center justify-center size-11 rounded-full bg-primary text-primary-foreground border border-transparent cursor-pointer transition-transform active:scale-95"
               >
                 {isPlaying ? (
@@ -323,7 +323,7 @@ export default function SpeechPlayerDialog({
               </div>
               <div
                 className={`text-sm leading-relaxed text-foreground whitespace-pre-wrap ${
-                  expanded ? "max-h-60 overflow-y-auto" : ""
+                  expanded ? 'max-h-60 overflow-y-auto' : ''
                 }`}
               >
                 {shownText}
@@ -334,7 +334,7 @@ export default function SpeechPlayerDialog({
                   onClick={() => setExpanded((x) => !x)}
                   className="mt-2 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
                 >
-                  {expanded ? "Show less" : `Show all (${text.length} chars)`}
+                  {expanded ? 'Show less' : `Show all (${text.length} chars)`}
                 </button>
               )}
             </div>

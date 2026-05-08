@@ -1,6 +1,6 @@
-import type { TokenUsage } from "@kontekst/dtos";
-import { StreamEventSchema } from "@kontekst/dtos";
-import { createParser } from "eventsource-parser";
+import type { TokenUsage } from '@kontekst/dtos';
+import { StreamEventSchema } from '@kontekst/dtos';
+import { createParser } from 'eventsource-parser';
 
 export interface ChatStreamPayload {
   message: string;
@@ -10,16 +10,16 @@ export interface ChatStreamPayload {
 }
 
 export type StreamPiece =
-  | { type: "piece"; text: string }
-  | { type: "meta"; conversationId: string }
-  | { type: "title" }
-  | { type: "usage"; usage: TokenUsage }
-  | { type: "error"; message: string }
-  | { type: "done" };
+  | { type: 'piece'; text: string }
+  | { type: 'meta'; conversationId: string }
+  | { type: 'title' }
+  | { type: 'usage'; usage: TokenUsage }
+  | { type: 'error'; message: string }
+  | { type: 'done' };
 
 export async function* streamChat(
   payload: ChatStreamPayload,
-  signal: AbortSignal,
+  signal: AbortSignal
 ): AsyncGenerator<StreamPiece> {
   const queue: StreamPiece[] = [];
   let waker: (() => void) | null = null;
@@ -45,7 +45,7 @@ export async function* streamChat(
     });
   };
 
-  let buffer = "";
+  let buffer = '';
   let animatorTimer: ReturnType<typeof setTimeout> | null = null;
   let networkDone = false;
   let drained = false;
@@ -60,7 +60,7 @@ export async function* streamChat(
     const match = buffer.match(/^\s*\S+\s*/);
     const piece = match ? match[0] : buffer;
     buffer = buffer.slice(piece.length);
-    queue.push({ type: "piece", text: piece });
+    queue.push({ type: 'piece', text: piece });
     if (buffer.length === 0 && networkDone) drained = true;
     wake();
     if (buffer.length > 0) {
@@ -84,20 +84,20 @@ export async function* streamChat(
   };
 
   const onAbort = () => wake();
-  signal.addEventListener("abort", onAbort);
+  signal.addEventListener('abort', onAbort);
 
   const network = (async () => {
     try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
         signal,
       });
 
       if (!response.ok || !response.body) {
         queue.push({
-          type: "error",
+          type: 'error',
           message: `Request failed (${response.status})`,
         });
         return;
@@ -112,25 +112,25 @@ export async function* streamChat(
             return;
           }
           switch (parsed.type) {
-            case "delta":
+            case 'delta':
               enqueueDelta(parsed.content);
               return;
-            case "meta":
+            case 'meta':
               queue.push({
-                type: "meta",
+                type: 'meta',
                 conversationId: parsed.conversationId,
               });
               break;
-            case "title":
-              queue.push({ type: "title" });
+            case 'title':
+              queue.push({ type: 'title' });
               break;
-            case "usage":
-              queue.push({ type: "usage", usage: parsed.usage });
+            case 'usage':
+              queue.push({ type: 'usage', usage: parsed.usage });
               break;
-            case "error":
-              queue.push({ type: "error", message: parsed.message });
+            case 'error':
+              queue.push({ type: 'error', message: parsed.message });
               break;
-            case "done":
+            case 'done':
               return;
           }
           wake();
@@ -147,8 +147,8 @@ export async function* streamChat(
     } catch (err) {
       if (signal.aborted) return;
       queue.push({
-        type: "error",
-        message: err instanceof Error ? err.message : "Stream failed",
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Stream failed',
       });
     } finally {
       networkDone = true;
@@ -165,14 +165,14 @@ export async function* streamChat(
         continue;
       }
       if (drained) {
-        yield { type: "done" };
+        yield { type: 'done' };
         return;
       }
       await waitForEvent();
     }
   } finally {
     stopAnimator();
-    signal.removeEventListener("abort", onAbort);
+    signal.removeEventListener('abort', onAbort);
     await network.catch(() => {});
   }
 }

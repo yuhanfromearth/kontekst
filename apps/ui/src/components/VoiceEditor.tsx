@@ -1,23 +1,23 @@
-import { useEffect, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { VoicePref } from "@kontekst/dtos";
-import { Button } from "#/components/ui/button";
-import { Checkbox } from "#/components/ui/checkbox";
-import { Input } from "#/components/ui/input";
-import { Label } from "#/components/ui/label";
-import { Popover, PopoverContent } from "#/components/ui/popover";
-import { ShortcutCaptureInput } from "#/components/ShortcutCaptureInput";
-import { useIsMac } from "#/lib/platform";
+import { useEffect, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type { VoicePref } from '@kontekst/dtos';
+import { Button } from '#/components/ui/button';
+import { Checkbox } from '#/components/ui/checkbox';
+import { Input } from '#/components/ui/input';
+import { Label } from '#/components/ui/label';
+import { Popover, PopoverContent } from '#/components/ui/popover';
+import { ShortcutCaptureInput } from '#/components/ShortcutCaptureInput';
+import { useIsMac } from '#/lib/platform';
 import {
   isValidShortcut,
   shortcutHint,
   shortcutValidationError,
-} from "#/lib/shortcut";
+} from '#/lib/shortcut';
 import {
   clearDefaultVoice,
   saveVoicePref,
   setDefaultVoice,
-} from "#/lib/speechClient";
+} from '#/lib/speechClient';
 
 interface VoiceEditorProps {
   modelId: string;
@@ -41,15 +41,15 @@ export default function VoiceEditor({
   const isMac = useIsMac();
   const queryClient = useQueryClient();
 
-  const [name, setName] = useState("");
-  const [shortcut, setShortcut] = useState("");
+  const [name, setName] = useState('');
+  const [shortcut, setShortcut] = useState('');
   const [isDefault, setIsDefault] = useState(false);
   const [shortcutError, setShortcutError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
-    setName(pref?.name ?? "");
-    setShortcut(pref?.shortcut ?? "");
+    setName(pref?.name ?? '');
+    setShortcut(pref?.shortcut ?? '');
     setIsDefault(isCurrentDefault);
     setShortcutError(null);
   }, [open, pref?.name, pref?.shortcut, isCurrentDefault]);
@@ -58,7 +58,7 @@ export default function VoiceEditor({
     mutationFn: async () => {
       if (shortcut && !isValidShortcut(shortcut)) {
         setShortcutError(shortcutValidationError());
-        throw new Error("invalid shortcut");
+        throw new Error('invalid shortcut');
       }
       await saveVoicePref({ modelId, voiceId, name, shortcut });
 
@@ -69,13 +69,13 @@ export default function VoiceEditor({
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["voice-prefs", modelId] });
+      queryClient.invalidateQueries({ queryKey: ['voice-prefs', modelId] });
       onOpenChange(false);
     },
     onError: (err) => {
-      const msg = err instanceof Error ? err.message : "Save failed";
-      if (msg.includes("already assigned")) setShortcutError(msg);
-      else if (msg !== "invalid shortcut") setShortcutError(msg);
+      const msg = err instanceof Error ? err.message : 'Save failed';
+      if (msg.includes('already assigned')) setShortcutError(msg);
+      else if (msg !== 'invalid shortcut') setShortcutError(msg);
     },
   });
 
@@ -83,22 +83,18 @@ export default function VoiceEditor({
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
       const mod = isMac ? e.metaKey : e.ctrlKey;
-      if (mod && e.key === "Enter") {
+      if (mod && e.key === 'Enter') {
         e.preventDefault();
         save.mutate();
       }
     };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
   }, [open, isMac, save]);
 
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
-      <PopoverContent
-        anchor={anchor}
-        className="w-80 p-4 gap-3"
-        sideOffset={8}
-      >
+      <PopoverContent anchor={anchor} className="w-80 p-4 gap-3" sideOffset={8}>
         <div className="flex flex-col gap-1">
           <p className="font-heading font-medium text-sm">Edit voice</p>
           <p className="font-mono text-xs text-muted-foreground">{voiceId}</p>
