@@ -64,4 +64,6 @@ export type SetDefaultVoiceRequest = z.infer<typeof SetDefaultVoiceSchema>;
 export const SetDefaultTtsModelSchema = z.object({
   modelId: z.string().min(1),
 });
-export type SetDefaultTtsModelRequest = z.infer<typeof SetDefaultTtsModelSchema>;
+export type SetDefaultTtsModelRequest = z.infer<
+  typeof SetDefaultTtsModelSchema
+>;

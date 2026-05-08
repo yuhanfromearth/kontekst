@@ -1,6 +1,6 @@
-import type { Message } from "@kontekst/dtos";
-import MarkdownRenderer from "#/components/MarkdownRenderer";
-import { useEffect, useRef, useState } from "react";
+import type { Message } from '@kontekst/dtos';
+import MarkdownRenderer from '#/components/MarkdownRenderer';
+import { useEffect, useRef, useState } from 'react';
 
 export default function ConversationDisplay({
   messages,
@@ -23,15 +23,15 @@ export default function ConversationDisplay({
       const containerHeight = scrollContainer.clientHeight;
       const lastMessage = messages[messages.length - 1];
 
-      if (lastMessage?.role === "user") {
+      if (lastMessage?.role === 'user') {
         const userHeight = lastUserMessageRef.current?.clientHeight ?? 0;
         setSpacerHeight(Math.max(0, containerHeight - userHeight - GAP));
-      } else if (lastMessage?.role === "assistant") {
+      } else if (lastMessage?.role === 'assistant') {
         const userHeight = lastUserMessageRef.current?.clientHeight ?? 0;
         const assistantHeight =
           lastAssistantMessageRef.current?.clientHeight ?? 0;
         setSpacerHeight(
-          Math.max(0, containerHeight - userHeight - assistantHeight - GAP * 2),
+          Math.max(0, containerHeight - userHeight - assistantHeight - GAP * 2)
         );
       }
 
@@ -42,8 +42,8 @@ export default function ConversationDisplay({
         pendingScrollRef.current = false;
         requestAnimationFrame(() => {
           lastUserMessageRef.current?.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
+            behavior: 'smooth',
+            block: 'start',
           });
         });
       }
@@ -62,17 +62,17 @@ export default function ConversationDisplay({
   }, [messages.length]);
 
   const lastUserIdx = messages.findLastIndex(
-    (message: Message) => message.role === "user",
+    (message: Message) => message.role === 'user'
   );
   const lastAssistantIdx =
-    messages[messages.length - 1]?.role === "assistant"
+    messages[messages.length - 1]?.role === 'assistant'
       ? messages.length - 1
       : -1;
 
   return (
     <div className="flex flex-col gap-6">
       {messages.map((message, index) =>
-        message.role === "user" ? (
+        message.role === 'user' ? (
           <div
             key={index}
             ref={index === lastUserIdx ? lastUserMessageRef : null}
@@ -90,7 +90,7 @@ export default function ConversationDisplay({
           >
             <MarkdownRenderer markdownString={message.content} />
           </div>
-        ),
+        )
       )}
       <div
         aria-hidden="true"

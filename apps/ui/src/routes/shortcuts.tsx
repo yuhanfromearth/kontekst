@@ -1,10 +1,10 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { Kbd } from "#/components/ui/kbd";
-import { ArrowLeft } from "lucide-react";
-import { useEffect } from "react";
-import { useIsMac } from "#/lib/platform";
+import { createFileRoute, useRouter } from '@tanstack/react-router';
+import { Kbd } from '#/components/ui/kbd';
+import { ArrowLeft } from 'lucide-react';
+import { useEffect } from 'react';
+import { useIsMac } from '#/lib/platform';
 
-export const Route = createFileRoute("/shortcuts")({
+export const Route = createFileRoute('/shortcuts')({
   component: ShortcutsPage,
 });
 
@@ -48,17 +48,17 @@ function ShortcutsPage() {
   const router = useRouter();
   const goBack = () => {
     if (router.history.length > 1) router.history.back();
-    else router.navigate({ to: "/" });
+    else router.navigate({ to: '/' });
   };
   const isMac = useIsMac();
-  const modGlyph = isMac ? "⌘" : "ctrl";
+  const modGlyph = isMac ? '⌘' : 'ctrl';
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") goBack();
+      if (e.key === 'Escape') goBack();
     };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
   }, []);
 
   return (
@@ -122,7 +122,7 @@ function ShortcutsPage() {
         <Section title="Konteksts">
           <ShortcutRow
             title="Switch kontekst"
-            description={`Activate a kontekst by its assigned shortcut key. Set these in the editor. Supports letters, numbers, combos (a+b), or ${isMac ? "Cmd" : "Ctrl"}+key (${modGlyph}+a).`}
+            description={`Activate a kontekst by its assigned shortcut key. Set these in the editor. Supports letters, numbers, combos (a+b), or ${isMac ? 'Cmd' : 'Ctrl'}+key (${modGlyph}+a).`}
             keys={
               <>
                 <Kbd>a</Kbd>

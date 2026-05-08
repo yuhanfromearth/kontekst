@@ -1,29 +1,29 @@
-import { defineConfig } from "vite";
-import { devtools } from "@tanstack/devtools-vite";
-import tsconfigPaths from "vite-tsconfig-paths";
+import { defineConfig } from 'vite';
+import { devtools } from '@tanstack/devtools-vite';
+import tsconfigPaths from 'vite-tsconfig-paths';
 
-import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import { tanstackStart } from '@tanstack/react-start/plugin/vite';
 
-import viteReact from "@vitejs/plugin-react";
-import tailwindcss from "@tailwindcss/vite";
+import viteReact from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 
 const config = defineConfig({
   plugins: [
     devtools(),
-    tsconfigPaths({ projects: ["./tsconfig.json"] }),
+    tsconfigPaths({ projects: ['./tsconfig.json'] }),
     tailwindcss(),
     tanstackStart({
       spa: {
         enabled: true,
-        prerender: { outputPath: "/index.html" },
+        prerender: { outputPath: '/index.html' },
       },
     }),
     viteReact(),
   ],
   server: {
     proxy: {
-      "/api": {
-        target: "http://localhost:8080",
+      '/api': {
+        target: 'http://localhost:8080',
         changeOrigin: true,
       },
     },

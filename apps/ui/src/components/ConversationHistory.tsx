@@ -1,24 +1,24 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { History, Trash2, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useConversation } from "#/components/ConversationContext";
-import { Input } from "#/components/ui/input";
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { History, Trash2, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useConversation } from '#/components/ConversationContext';
+import { Input } from '#/components/ui/input';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "#/components/ui/popover";
-import { formatCost } from "#/lib/cost";
-import type { ConversationDto, ConversationSummary } from "@kontekst/dtos";
+} from '#/components/ui/popover';
+import { formatCost } from '#/lib/cost';
+import type { ConversationDto, ConversationSummary } from '@kontekst/dtos';
 
 function formatDate(ms: number): string {
   const d = new Date(ms);
   const now = new Date();
   const sameYear = d.getFullYear() === now.getFullYear();
   return d.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    ...(sameYear ? {} : { year: "numeric" }),
+    month: 'short',
+    day: 'numeric',
+    ...(sameYear ? {} : { year: 'numeric' }),
   });
 }
 
@@ -48,7 +48,7 @@ function highlightMatch(text: string, query: string) {
       </mark>
     ) : (
       <span key={idx}>{p.text}</span>
-    ),
+    )
   );
 }
 
@@ -60,14 +60,14 @@ export default function ConversationHistory({
   const { loadConversation, conversationId } = useConversation();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState('');
   const kontekstSet = new Set(kontekstList);
 
   const { data: conversations = [], isLoading } = useQuery<
     ConversationSummary[]
   >({
-    queryKey: ["conversations"],
-    queryFn: () => fetch("/api/conversations").then((res) => res.json()),
+    queryKey: ['conversations'],
+    queryFn: () => fetch('/api/conversations').then((res) => res.json()),
     enabled: open,
   });
 
@@ -76,17 +76,17 @@ export default function ConversationHistory({
     if (!trimmedQuery) return conversations;
     const q = trimmedQuery.toLowerCase();
     return conversations.filter((c) =>
-      (c.title?.trim() || "Untitled").toLowerCase().includes(q),
+      (c.title?.trim() || 'Untitled').toLowerCase().includes(q)
     );
   }, [conversations, trimmedQuery]);
 
   const { mutate: deleteConversation } = useMutation({
     mutationFn: (id: string) =>
       fetch(`/api/conversation?id=${encodeURIComponent(id)}`, {
-        method: "DELETE",
+        method: 'DELETE',
       }),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["conversations"] }),
+      queryClient.invalidateQueries({ queryKey: ['conversations'] }),
   });
 
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
@@ -95,12 +95,15 @@ export default function ConversationHistory({
   useEffect(() => {
     if (!confirmDeleteAll) return;
     const handler = (e: MouseEvent) => {
-      if (confirmRef.current && !confirmRef.current.contains(e.target as Node)) {
+      if (
+        confirmRef.current &&
+        !confirmRef.current.contains(e.target as Node)
+      ) {
         setConfirmDeleteAll(false);
       }
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, [confirmDeleteAll]);
 
   useEffect(() => {
@@ -110,11 +113,11 @@ export default function ConversationHistory({
   const { mutate: deleteAllConversations, isPending: isDeletingAll } =
     useMutation({
       mutationFn: async () => {
-        const res = await fetch("/api/conversations", { method: "DELETE" });
-        if (!res.ok) throw new Error("Failed to delete conversations");
+        const res = await fetch('/api/conversations', { method: 'DELETE' });
+        if (!res.ok) throw new Error('Failed to delete conversations');
       },
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["conversations"] });
+        queryClient.invalidateQueries({ queryKey: ['conversations'] });
         setConfirmDeleteAll(false);
       },
     });
@@ -195,7 +198,7 @@ export default function ConversationHistory({
             return (
               <div
                 key={c.id}
-                className={`group flex items-center rounded ${isActive ? "bg-accent" : ""}`}
+                className={`group flex items-center rounded ${isActive ? 'bg-accent' : ''}`}
               >
                 <button
                   type="button"
@@ -204,8 +207,8 @@ export default function ConversationHistory({
                 >
                   <div className="font-medium truncate">
                     {highlightMatch(
-                      c.title?.trim() || "Untitled",
-                      trimmedQuery,
+                      c.title?.trim() || 'Untitled',
+                      trimmedQuery
                     )}
                   </div>
                   <div className="text-xs text-muted-foreground flex gap-2 mt-0.5 truncate">

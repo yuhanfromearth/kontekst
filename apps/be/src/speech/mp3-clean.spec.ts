@@ -61,5 +61,4 @@ describe('cleanMp3', () => {
     expect(result.buffer.subarray(0, 3).toString('latin1')).toBe('ID3');
     expect(result.buffer.length).toBe(id3.length + FRAME_SIZE * 2);
   });
-
 });

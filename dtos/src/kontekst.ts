@@ -19,7 +19,9 @@ export const SetDefaultKontekstSchema = z.object({
 
 export type SaveKontekstRequest = z.infer<typeof SaveKontekstSchema>;
 export type RenameKontekstRequest = z.infer<typeof RenameKontekstSchema>;
-export type SetDefaultKontekstRequest = z.infer<typeof SetDefaultKontekstSchema>;
+export type SetDefaultKontekstRequest = z.infer<
+  typeof SetDefaultKontekstSchema
+>;
 
 export interface KontekstDto {
   name: string;
