@@ -1,4 +1,4 @@
-import type { ModelDto } from '@kontekst/dtos';
+import type { DefaultModelResponse, ModelDto } from '@kontekst/dtos';
 import { formatTokens } from '#/lib/tokens';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
@@ -61,7 +61,7 @@ export default function ModelSelector({
     enabled: open,
   });
 
-  const { data: defaultModel } = useQuery<ModelDto>({
+  const { data: defaultModel } = useQuery<DefaultModelResponse>({
     queryKey: ['models', 'default'],
     queryFn: () => fetch('/api/models/default').then((res) => res.json()),
     enabled: open,
@@ -118,7 +118,7 @@ export default function ModelSelector({
         </div>
         <div className="max-h-60 overflow-y-auto flex flex-col gap-0.5">
           {displayModels.map((model) => {
-            const isDefault = model.id === defaultModel?.id;
+            const isDefault = model.id === defaultModel?.modelId;
             const days = model.expirationDate
               ? daysUntil(model.expirationDate)
               : null;

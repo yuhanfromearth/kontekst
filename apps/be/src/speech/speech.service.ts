@@ -1,7 +1,12 @@
 import { HttpException, Injectable } from '@nestjs/common';
 import fs from 'node:fs';
 import path from 'node:path';
-import type { SpeechClip, SpeechRequest, TtsModel } from '@kontekst/dtos';
+import type {
+  DefaultTtsModelResponse,
+  SpeechClip,
+  SpeechRequest,
+  TtsModel,
+} from '@kontekst/dtos';
 import { JsonStore } from '../common/json-store.js';
 import { KeyService } from '../key/key.service.js';
 import type {
@@ -24,18 +29,22 @@ export class SpeechService {
       clips: [],
     }),
   );
-  private defaultModelId: string | null = null;
+  private readonly defaultStore = new JsonStore<{ modelId: string | null }>(
+    'default-tts-model.json',
+    () => ({ modelId: null }),
+  );
 
   constructor(private readonly keyService: KeyService) {}
 
   setDefaultModel(modelId: string): void {
-    this.defaultModelId = modelId;
+    this.defaultStore.write({ modelId });
   }
 
-  async getDefaultModel(): Promise<TtsModel | null> {
-    if (!this.defaultModelId) return null;
+  async getDefaultModel(): Promise<DefaultTtsModelResponse> {
+    const { modelId } = this.defaultStore.read();
+    if (!modelId) return { modelId: null, model: null };
     const all = await this.listModels();
-    return all.find((m) => m.id === this.defaultModelId) ?? null;
+    return { modelId, model: all.find((m) => m.id === modelId) ?? null };
   }
 
   private get audioDir(): string {

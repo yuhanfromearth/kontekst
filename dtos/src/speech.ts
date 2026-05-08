@@ -67,3 +67,8 @@ export const SetDefaultTtsModelSchema = z.object({
 export type SetDefaultTtsModelRequest = z.infer<
   typeof SetDefaultTtsModelSchema
 >;
+
+export interface DefaultTtsModelResponse {
+  modelId: string | null;
+  model: TtsModel | null;
+}

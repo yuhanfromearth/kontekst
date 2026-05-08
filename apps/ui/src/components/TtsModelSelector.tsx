@@ -1,4 +1,4 @@
-import type { TtsModel } from '@kontekst/dtos';
+import type { DefaultTtsModelResponse, TtsModel } from '@kontekst/dtos';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { ChevronDown, Star } from 'lucide-react';
@@ -15,7 +15,7 @@ import {
 } from '#/lib/speechClient';
 
 interface TtsModelSelectorProps {
-  selected: TtsModel;
+  selected: TtsModel | null;
   onSelect: (model: TtsModel) => void;
 }
 
@@ -38,7 +38,7 @@ export default function TtsModelSelector({
     queryFn: listTtsModels,
   });
 
-  const { data: defaultModel } = useQuery<TtsModel | null>({
+  const { data: defaultModel } = useQuery<DefaultTtsModelResponse>({
     queryKey: ['tts-models', 'default'],
     queryFn: getDefaultTtsModel,
     enabled: open,
@@ -58,7 +58,7 @@ export default function TtsModelSelector({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger className="text-xs text-muted-foreground hover:text-foreground transition-colors ml-1 cursor-pointer inline-flex items-center gap-1">
-        {selected.name}
+        {selected?.name ?? 'select TTS model'}
         <ChevronDown className="size-3" />
       </PopoverTrigger>
       <PopoverContent className="w-80 p-2" align="start">
@@ -71,11 +71,11 @@ export default function TtsModelSelector({
         />
         <div className="max-h-56 overflow-y-auto flex flex-col gap-0.5">
           {filtered.map((m) => {
-            const isDefault = m.id === defaultModel?.id;
+            const isDefault = m.id === defaultModel?.modelId;
             return (
               <div
                 key={m.id}
-                className={`group flex items-center rounded ${selected.id === m.id ? 'bg-accent' : ''}`}
+                className={`group flex items-center rounded ${selected?.id === m.id ? 'bg-accent' : ''}`}
               >
                 <button
                   type="button"

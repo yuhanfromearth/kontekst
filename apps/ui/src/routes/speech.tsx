@@ -12,6 +12,7 @@ import { Spinner } from '#/components/ui/spinner';
 import { Textarea } from '#/components/ui/textarea';
 import {
   SPEECH_MAX_CHARS,
+  type DefaultTtsModelResponse,
   type KeyListItem,
   type SpeechClip,
   type TtsModel,
@@ -69,11 +70,13 @@ function SpeechPage() {
     queryFn: listTtsModels,
     enabled: hasActiveKey,
   });
-  const { data: defaultTtsModel } = useQuery<TtsModel | null>({
+  const { data: defaultTtsModel } = useQuery<DefaultTtsModelResponse>({
     queryKey: ['tts-models', 'default'],
     queryFn: getDefaultTtsModel,
     enabled: hasActiveKey,
   });
+  const defaultTtsMissing =
+    !!defaultTtsModel?.modelId && !defaultTtsModel.model;
   const { data: clips = [], isPending: clipsPending } = useQuery<SpeechClip[]>({
     queryKey: ['speech-clips'],
     queryFn: listClips,
@@ -95,11 +98,13 @@ function SpeechPage() {
   useEffect(() => {
     if (selectedModel) return;
     if (models.length === 0) return;
-    const fromDefault = defaultTtsModel
-      ? models.find((m) => m.id === defaultTtsModel.id)
+    if (!defaultTtsModel) return;
+    if (defaultTtsMissing) return;
+    const fromDefault = defaultTtsModel.model
+      ? models.find((m) => m.id === defaultTtsModel.model!.id)
       : undefined;
     setSelectedModel(fromDefault ?? models[0]);
-  }, [models, selectedModel, defaultTtsModel]);
+  }, [models, selectedModel, defaultTtsModel, defaultTtsMissing]);
 
   // When the model changes (or first loads with prefs), pick a voice. Prefer
   // the per-model default voice, then the persisted choice if still supported,
@@ -178,8 +183,17 @@ function SpeechPage() {
     },
   });
 
+  const blockedByMissingDefault = defaultTtsMissing && !selectedModel;
+
   const generate = () => {
-    if (!text.trim() || synthesize.isPending || overLimit || showNoKey) return;
+    if (
+      !text.trim() ||
+      synthesize.isPending ||
+      overLimit ||
+      showNoKey ||
+      blockedByMissingDefault
+    )
+      return;
     synthesize.mutate();
   };
 
@@ -223,7 +237,7 @@ function SpeechPage() {
       </div>
 
       <div className="flex items-center justify-between mb-2">
-        {showNoKey || !selectedModel ? (
+        {showNoKey || (!selectedModel && !defaultTtsMissing) ? (
           <span />
         ) : (
           <TtsModelSelector
@@ -245,6 +259,15 @@ function SpeechPage() {
         </div>
       )}
 
+      {!showNoKey && blockedByMissingDefault && (
+        <div className="mb-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          Your default TTS model{' '}
+          <span className="font-mono">'{defaultTtsModel?.modelId}'</span> is no
+          longer available. Pick a different model and set it to default to
+          continue.
+        </div>
+      )}
+
       <Textarea
         ref={textareaRef}
         placeholder={
@@ -253,7 +276,7 @@ function SpeechPage() {
             : 'What would you like spoken aloud? [/]'
         }
         value={text}
-        disabled={showNoKey}
+        disabled={showNoKey || blockedByMissingDefault}
         onChange={(e) => {
           setText(e.target.value);
           setError(undefined);
@@ -287,7 +310,11 @@ function SpeechPage() {
           className="flex-1 hover:cursor-pointer"
           onClick={generate}
           disabled={
-            synthesize.isPending || !text.trim() || overLimit || showNoKey
+            synthesize.isPending ||
+            !text.trim() ||
+            overLimit ||
+            showNoKey ||
+            blockedByMissingDefault
           }
         >
           {synthesize.isPending ? (
