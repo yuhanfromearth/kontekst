@@ -8,7 +8,7 @@ import ThemeToggle from '#/components/ThemeToggle';
 import { Button } from '#/components/ui/button';
 import { Textarea } from '#/components/ui/textarea';
 import ModeToggle from '#/components/ModeToggle';
-import type { KeyListItem, ModelDto } from '@kontekst/dtos';
+import type { DefaultModelResponse, KeyListItem } from '@kontekst/dtos';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { formatCost } from '#/lib/cost';
@@ -68,17 +68,19 @@ function App() {
   const hasActiveKey = keys.some((k) => k.isActive);
   const showNoKey = !keysLoading && !hasActiveKey;
 
-  const { data: defaultModel } = useQuery<ModelDto>({
+  const { data: defaultModel } = useQuery<DefaultModelResponse>({
     queryKey: ['models', 'default'],
     queryFn: () => fetch('/api/models/default').then((res) => res.json()),
     enabled: hasActiveKey,
   });
+  const defaultModelMissing = !!defaultModel?.modelId && !defaultModel.model;
+  const blockedByMissingDefault = defaultModelMissing && !selectedModel;
 
   useEffect(() => {
-    if (defaultModel && !selectedModel) {
-      setSelectedModel(defaultModel.id);
-      setSelectedModelDto(defaultModel);
-      setModelContextLength(defaultModel.contextLength);
+    if (defaultModel?.model && !selectedModel) {
+      setSelectedModel(defaultModel.model.id);
+      setSelectedModelDto(defaultModel.model);
+      setModelContextLength(defaultModel.model.contextLength);
     }
   }, [defaultModel, selectedModel]);
 
@@ -212,6 +214,7 @@ function App() {
 
   const submit = () => {
     if (!input) return;
+    if (blockedByMissingDefault) return;
     const userMessage = input;
     setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
     setInput('');
@@ -292,13 +295,21 @@ function App() {
             the top bar.
           </div>
         )}
+        {!showNoKey && blockedByMissingDefault && (
+          <div className="mb-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            Your default model{' '}
+            <span className="font-mono">'{defaultModel?.modelId}'</span> is no
+            longer available. Pick a different model and set it to default to
+            continue.
+          </div>
+        )}
         <Textarea
           ref={textareaRef}
           placeholder={
             showNoKey ? 'Add an API key first…' : 'How can I help you? [/]'
           }
           value={input}
-          disabled={showNoKey}
+          disabled={showNoKey || blockedByMissingDefault}
           onChange={(e) => {
             setInput(e.target.value);
             setChatError(undefined);
@@ -315,7 +326,7 @@ function App() {
             className="flex-1 hover:cursor-pointer"
             variant="outline"
             type="submit"
-            disabled={isStreaming || showNoKey}
+            disabled={isStreaming || showNoKey || blockedByMissingDefault}
           >
             Send
           </Button>

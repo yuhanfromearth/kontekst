@@ -39,6 +39,8 @@ import { VoicePrefService } from './voice-pref/voice-pref.service.js';
 import type {
   ConversationDto,
   ConversationSummary,
+  DefaultModelResponse,
+  DefaultTtsModelResponse,
   KeyInfo,
   KeyListItem,
   KontekstDto,
@@ -130,7 +132,7 @@ export class AppController {
   }
 
   @Get('models/default')
-  getDefaultModel(): Promise<ModelDto> {
+  getDefaultModel(): Promise<DefaultModelResponse> {
     return this.modelService.getDefaultModel();
   }
 
@@ -289,7 +291,7 @@ export class AppController {
   }
 
   @Get('speech/models/default')
-  getDefaultTtsModel(): Promise<TtsModel | null> {
+  getDefaultTtsModel(): Promise<DefaultTtsModelResponse> {
     return this.speechService.getDefaultModel();
   }
 

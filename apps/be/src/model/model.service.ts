@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import type { ModelDto } from '@kontekst/dtos';
+import type { DefaultModelResponse, ModelDto } from '@kontekst/dtos';
+import { JsonStore } from '../common/json-store.js';
 import { KeyService } from '../key/key.service.js';
 import {
   OpenRouterModel,
@@ -9,9 +10,16 @@ import {
 const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models';
 const INITIAL_DEFAULT_MODEL = 'google/gemini-3-flash-preview';
 
+interface DefaultModelStore {
+  modelId: string;
+}
+
 @Injectable()
 export class ModelService {
-  private defaultModel = INITIAL_DEFAULT_MODEL;
+  private readonly defaultStore = new JsonStore<DefaultModelStore>(
+    'default-model.json',
+    () => ({ modelId: INITIAL_DEFAULT_MODEL }),
+  );
 
   constructor(private readonly keyService: KeyService) {}
 
@@ -41,19 +49,14 @@ export class ModelService {
   }
 
   setDefaultModel(modelId: string): void {
-    this.defaultModel = modelId;
+    this.defaultStore.write({ modelId });
   }
 
-  async getDefaultModel(): Promise<ModelDto> {
-    const match = (await this.fetchCatalog()).find(
-      (m) => m.id === this.defaultModel,
-    );
-
-    if (!match) {
-      throw new Error(`Default model '${this.defaultModel}' not found`);
-    }
-
-    return toModelDto(match);
+  async getDefaultModel(): Promise<DefaultModelResponse> {
+    const { modelId } = this.defaultStore.read();
+    if (!modelId) return { modelId: null, model: null };
+    const match = (await this.fetchCatalog()).find((m) => m.id === modelId);
+    return { modelId, model: match ? toModelDto(match) : null };
   }
 
   private async fetchCatalog(): Promise<OpenRouterModel[]> {

@@ -19,3 +19,8 @@ export interface ModelDto {
   pricing: ModelPricing;
   expirationDate: string | null;
 }
+
+export interface DefaultModelResponse {
+  modelId: string | null;
+  model: ModelDto | null;
+}

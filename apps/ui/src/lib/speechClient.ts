@@ -1,4 +1,9 @@
-import type { SpeechClip, TtsModel, VoicePrefsForModel } from '@kontekst/dtos';
+import type {
+  DefaultTtsModelResponse,
+  SpeechClip,
+  TtsModel,
+  VoicePrefsForModel,
+} from '@kontekst/dtos';
 
 export interface SynthesizeArgs {
   input: string;
@@ -39,7 +44,7 @@ export async function listTtsModels(): Promise<TtsModel[]> {
   return res.json();
 }
 
-export async function getDefaultTtsModel(): Promise<TtsModel | null> {
+export async function getDefaultTtsModel(): Promise<DefaultTtsModelResponse> {
   const res = await fetch('/api/speech/models/default');
   if (!res.ok)
     throw new Error(`Failed to load default TTS model (${res.status})`);
