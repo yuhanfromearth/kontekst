@@ -90,7 +90,7 @@ function ShortcutsPage() {
           />
           <ShortcutRow
             title="Send message"
-            description="Submit your prompt without reaching for the mouse."
+            description="Submit your chat/tts prompt."
             keys={<Kbd>Enter</Kbd>}
           />
           <ShortcutRow

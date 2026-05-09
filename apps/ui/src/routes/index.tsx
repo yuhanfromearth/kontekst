@@ -214,6 +214,7 @@ function App() {
 
   const submit = () => {
     if (!input) return;
+    if (isStreaming) return;
     if (blockedByMissingDefault) return;
     const userMessage = input;
     setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
@@ -315,9 +316,9 @@ function App() {
             setChatError(undefined);
           }}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey && input.trim() !== '') {
+            if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
-              submit();
+              if (input.trim() !== '' && !isStreaming) submit();
             }
           }}
         />
@@ -326,7 +327,12 @@ function App() {
             className="flex-1 hover:cursor-pointer"
             variant="outline"
             type="submit"
-            disabled={isStreaming || showNoKey || blockedByMissingDefault}
+            disabled={
+              isStreaming ||
+              showNoKey ||
+              blockedByMissingDefault ||
+              input.trim() === ''
+            }
           >
             Send
           </Button>

@@ -1,7 +1,7 @@
 import type { DefaultModelResponse, ModelDto } from '@kontekst/dtos';
 import { formatTokens } from '#/lib/tokens';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Input } from '#/components/ui/input';
 import {
   Popover,
@@ -117,8 +117,11 @@ export default function ModelSelector({
           </button>
         </div>
         <div className="max-h-60 overflow-y-auto flex flex-col gap-0.5">
-          {displayModels.map((model) => {
+          {displayModels.map((model, idx) => {
             const isDefault = model.id === defaultModel?.modelId;
+            const isSelected = model.id === selectedModel;
+            const showDivider =
+              isSelected && idx === 0 && displayModels.length > 1;
             const days = model.expirationDate
               ? daysUntil(model.expirationDate)
               : null;
@@ -129,63 +132,67 @@ export default function ModelSelector({
                   : `expires in ${days}d`
                 : null;
             return (
-              <div
-                key={model.id}
-                className={`group flex items-center rounded ${model.id === selectedModel ? 'bg-accent' : ''}`}
-              >
-                <button
-                  type="button"
-                  className="flex-1 text-left px-2 py-1.5 text-sm hover:bg-accent transition-colors rounded"
-                  onClick={() => {
-                    onSelect(model);
-                    setOpen(false);
-                  }}
+              <Fragment key={model.id}>
+                <div
+                  className={`group flex items-center rounded ${isSelected ? 'bg-accent' : ''}`}
                 >
-                  <div className="font-medium truncate">{model.name}</div>
-                  <div className="flex items-start gap-2 mt-0.5 text-xs text-muted-foreground">
-                    <span className="min-w-0 flex-1 flex flex-wrap gap-2">
-                      <span>{formatTokens(model.contextLength)} ctx</span>
-                      {expiryLabel && (
-                        <span className="text-amber-600 dark:text-amber-400">
-                          {expiryLabel}
+                  <button
+                    type="button"
+                    className="flex-1 text-left px-2 py-1.5 text-sm hover:bg-accent transition-colors rounded"
+                    onClick={() => {
+                      onSelect(model);
+                      setOpen(false);
+                    }}
+                  >
+                    <div className="font-medium truncate">{model.name}</div>
+                    <div className="flex items-start gap-2 mt-0.5 text-xs text-muted-foreground">
+                      <span className="min-w-0 flex-1 flex flex-wrap gap-2">
+                        <span>{formatTokens(model.contextLength)} ctx</span>
+                        {expiryLabel && (
+                          <span className="text-amber-600 dark:text-amber-400">
+                            {expiryLabel}
+                          </span>
+                        )}
+                      </span>
+                      <span className="shrink-0 flex gap-2 font-medium">
+                        <span className="text-emerald-700 dark:text-emerald-400">
+                          in {formatPrice(model.pricing.prompt)}
                         </span>
-                      )}
-                    </span>
-                    <span className="shrink-0 flex gap-2 font-medium">
-                      <span className="text-emerald-700 dark:text-emerald-400">
-                        in {formatPrice(model.pricing.prompt)}
+                        <span className="text-sky-700 dark:text-sky-400">
+                          out {formatPrice(model.pricing.completion)}
+                        </span>
                       </span>
-                      <span className="text-sky-700 dark:text-sky-400">
-                        out {formatPrice(model.pricing.completion)}
-                      </span>
-                    </span>
-                  </div>
-                </button>
-                <a
-                  href={`https://openrouter.ai/${model.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="View on OpenRouter"
-                  className="mr-1 p-1 rounded text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-foreground transition-colors"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <ExternalLink className="size-3.5" />
-                </a>
-                <button
-                  type="button"
-                  title={isDefault ? 'Default model' : 'Set as default'}
-                  className={`mr-1 p-1 rounded transition-colors ${isDefault ? 'text-foreground' : 'text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-foreground'}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!isDefault) setDefaultModel(model.id);
-                  }}
-                >
-                  <Star
-                    className="size-3.5"
-                    fill={isDefault ? 'currentColor' : 'none'}
-                  />
-                </button>
-              </div>
+                    </div>
+                  </button>
+                  <a
+                    href={`https://openrouter.ai/${model.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="View on OpenRouter"
+                    className="mr-1 p-1 rounded text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-foreground transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <ExternalLink className="size-3.5" />
+                  </a>
+                  <button
+                    type="button"
+                    title={isDefault ? 'Default model' : 'Set as default'}
+                    className={`mr-1 p-1 rounded transition-colors ${isDefault ? 'text-foreground' : 'text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-foreground'}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!isDefault) setDefaultModel(model.id);
+                    }}
+                  >
+                    <Star
+                      className="size-3.5"
+                      fill={isDefault ? 'currentColor' : 'none'}
+                    />
+                  </button>
+                </div>
+                {showDivider && (
+                  <div className="my-1 border-t border-border/50" />
+                )}
+              </Fragment>
             );
           })}
           {displayModels.length === 0 && (

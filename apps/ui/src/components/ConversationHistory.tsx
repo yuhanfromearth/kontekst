@@ -144,7 +144,7 @@ export default function ConversationHistory({
             Past conversations
           </p>
           {conversations.length > 0 && (
-            <div ref={confirmRef}>
+            <div ref={confirmRef} className="flex items-center h-5.5">
               {confirmDeleteAll ? (
                 <button
                   type="button"
