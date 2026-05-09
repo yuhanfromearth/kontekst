@@ -327,7 +327,12 @@ function App() {
             className="flex-1 hover:cursor-pointer"
             variant="outline"
             type="submit"
-            disabled={isStreaming || showNoKey || blockedByMissingDefault}
+            disabled={
+              isStreaming ||
+              showNoKey ||
+              blockedByMissingDefault ||
+              input.trim() === ''
+            }
           >
             Send
           </Button>

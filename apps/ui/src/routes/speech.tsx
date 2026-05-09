@@ -323,12 +323,7 @@ function SpeechPage() {
               Synthesizing…
             </>
           ) : (
-            <>
-              Generate
-              <span className="ml-2 inline-flex items-center justify-center h-5 min-w-5 px-1 bg-muted text-muted-foreground rounded-sm text-xs font-medium">
-                Enter
-              </span>
-            </>
+            <>Generate</>
           )}
         </Button>
         <Button
