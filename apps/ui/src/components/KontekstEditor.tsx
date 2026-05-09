@@ -1,44 +1,43 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { ArrowLeft } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '#/components/ui/card';
-import { Label } from '#/components/ui/label';
-import { Input } from '#/components/ui/input';
-import { Textarea } from '#/components/ui/textarea';
 import { Button } from '#/components/ui/button';
 import { Checkbox } from '#/components/ui/checkbox';
+import { Dialog, DialogContent, DialogTitle } from '#/components/ui/dialog';
+import { Input } from '#/components/ui/input';
+import { Label } from '#/components/ui/label';
+import { Textarea } from '#/components/ui/textarea';
 import { ShortcutCaptureInput } from '#/components/ShortcutCaptureInput';
+import { useIsMac } from '#/lib/platform';
 import {
   isValidShortcut,
   shortcutHint,
   shortcutValidationError,
 } from '#/lib/shortcut';
-import { useIsMac } from '#/lib/platform';
 import type { KontekstDto } from '@kontekst/dtos';
 
-export const Route = createFileRoute('/kontekst/$name')({
-  component: KontekstEditPage,
-});
+interface KontekstEditorProps {
+  name: string | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
 
-function KontekstEditPage() {
-  const { name } = Route.useParams();
-  const navigate = useNavigate();
+export default function KontekstEditor({
+  name,
+  open,
+  onOpenChange,
+}: KontekstEditorProps) {
   const queryClient = useQueryClient();
   const isMac = useIsMac();
 
-  const { data, isLoading, isError } = useQuery<KontekstDto>({
+  const isNew = name === null;
+
+  const { data } = useQuery<KontekstDto>({
     queryKey: ['kontekst', name],
     queryFn: () =>
-      fetch(`/api/kontekst?name=${encodeURIComponent(name)}`).then((res) =>
+      fetch(`/api/kontekst?name=${encodeURIComponent(name!)}`).then((res) =>
         res.json()
       ),
+    enabled: open && !isNew,
   });
 
   const { data: savedDefault } = useQuery<string | null>({
@@ -46,12 +45,12 @@ function KontekstEditPage() {
     queryFn: async () => {
       const res = await fetch('/api/konteksts/default');
       if (!res.ok) throw new Error('Failed to fetch default kontekst');
-      const data: { name: string | null } = await res.json();
-      return data.name;
+      const body: { name: string | null } = await res.json();
+      return body.name;
     },
   });
 
-  const [editableName, setEditableName] = useState(name);
+  const [editableName, setEditableName] = useState('');
   const [kontekst, setKontekst] = useState('');
   const [shortcut, setShortcut] = useState('');
   const [isDefault, setIsDefault] = useState(false);
@@ -62,44 +61,48 @@ function KontekstEditPage() {
   const deleteRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') navigate({ to: '/' });
-    };
-    document.addEventListener('keydown', handler);
-
-    return () => document.removeEventListener('keydown', handler);
-  }, [navigate]);
-
-  useEffect(() => {
-    if (!confirmDelete) return;
-    const handler = (e: MouseEvent) => {
-      // if the user clicks anywhere outside the delete confirmation button, cancel it
-      if (deleteRef.current && !deleteRef.current.contains(e.target as Node)) {
-        setConfirmDelete(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [confirmDelete]);
+    if (!open) return;
+    setNameError(null);
+    setContentError(null);
+    setShortcutError(null);
+    setConfirmDelete(false);
+    if (isNew) {
+      setEditableName('');
+      setKontekst('');
+      setShortcut('');
+    } else {
+      setEditableName(name);
+    }
+  }, [open, name, isNew]);
 
   useEffect(() => {
+    if (!open || isNew) return;
     if (data) {
       setKontekst(data.kontekst ?? '');
       setShortcut(data.shortcut ?? '');
       if (data.kontekst === undefined) setEditableName('');
     }
-  }, [data]);
+  }, [open, isNew, data]);
 
   useEffect(() => {
+    if (!open) return;
     if (savedDefault !== undefined) {
-      setIsDefault(savedDefault === name);
+      setIsDefault(!isNew && savedDefault === name);
     }
-  }, [savedDefault, name]);
+  }, [open, savedDefault, name, isNew]);
 
-  const wasDefault = savedDefault === name;
+  useEffect(() => {
+    if (!confirmDelete) return;
+    const handler = (e: MouseEvent) => {
+      if (deleteRef.current && !deleteRef.current.contains(e.target as Node)) {
+        setConfirmDelete(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [confirmDelete]);
 
-  const isNew = data?.kontekst === undefined;
+  const wasDefault = !isNew && savedDefault === name;
 
   const {
     mutate: saveKontekst,
@@ -151,7 +154,7 @@ function KontekstEditPage() {
         throw new Error(body?.message ?? `Request failed: ${res.status}`);
       }
 
-      if (isDefault) {
+      if (isDefault && !wasDefault) {
         const defaultRes = await fetch('/api/konteksts/default', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -161,7 +164,7 @@ function KontekstEditPage() {
           const body = await defaultRes.json().catch(() => null);
           throw new Error(body?.message ?? 'Failed to set as default');
         }
-      } else if (wasDefault) {
+      } else if (!isDefault && wasDefault) {
         const defaultRes = await fetch('/api/konteksts/default', {
           method: 'DELETE',
         });
@@ -171,14 +174,11 @@ function KontekstEditPage() {
         }
       }
     },
-
     onSuccess: () => {
-      // Tell the query cache the kontekst list is stale so the home page
-      // immediately refetches it. Without this, the cached (old) list would
-      // be used after setting a new default and the wrong kontekst would appear selected.
       queryClient.invalidateQueries({ queryKey: ['konteksts'] });
       queryClient.invalidateQueries({ queryKey: ['konteksts', 'default'] });
-      navigate({ to: '/' });
+      queryClient.invalidateQueries({ queryKey: ['shortcuts'] });
+      onOpenChange(false);
     },
     onError: (error) => {
       if (error.message.includes('already assigned')) {
@@ -188,50 +188,45 @@ function KontekstEditPage() {
   });
 
   useEffect(() => {
+    if (!open) return;
     const handler = (e: KeyboardEvent) => {
       const mod = isMac ? e.metaKey : e.ctrlKey;
-      if (mod && e.key === 'Enter') saveKontekst();
+      if (mod && e.key === 'Enter') {
+        e.preventDefault();
+        saveKontekst();
+      }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [saveKontekst, isMac]);
+  }, [open, saveKontekst, isMac]);
 
   const { mutate: deleteKontekst, isPending: isDeleting } = useMutation({
     mutationFn: () =>
-      fetch(`/api/kontekst?name=${encodeURIComponent(name)}`, {
+      fetch(`/api/kontekst?name=${encodeURIComponent(name!)}`, {
         method: 'DELETE',
       }),
-    onSuccess: () => navigate({ to: '/' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['konteksts'] });
+      queryClient.invalidateQueries({ queryKey: ['konteksts', 'default'] });
+      queryClient.invalidateQueries({ queryKey: ['shortcuts'] });
+      onOpenChange(false);
+    },
   });
 
-  if (isLoading) return <p>Loading...</p>;
-  if (isError) return <p>Something went wrong.</p>;
-
   return (
-    <>
-      <div className="max-w-lg mx-auto w-full">
-        <button
-          type="button"
-          onClick={() => navigate({ to: '/' })}
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4 -ml-0.5"
-        >
-          <ArrowLeft className="size-4" />
-          Back
-        </button>
-      </div>
-      <Card className="max-w-lg mx-auto">
-        <CardHeader>
-          <CardTitle>
-            {isNew ? (
-              'Create new Kontekst'
-            ) : (
-              <>
-                Edit <span className="font-mono">{name}</span>
-              </>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogTitle className="mb-4">
+          {isNew ? (
+            'Create new Kontekst'
+          ) : (
+            <>
+              Edit <span className="font-mono">{name}</span>
+            </>
+          )}
+        </DialogTitle>
+
+        <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <Label htmlFor="name">Name</Label>
             <Input
@@ -286,14 +281,13 @@ function KontekstEditPage() {
               <Label htmlFor="isDefault">Set as default</Label>
             </div>
           )}
-        </CardContent>
-        {/* nameError and contentError are displayed separately */}
+        </div>
+
         {saveError && !shortcutError && !nameError && !contentError && (
-          <p className="px-6 pb-2 text-sm text-destructive">
-            {saveError.message}
-          </p>
+          <p className="mt-3 text-sm text-destructive">{saveError.message}</p>
         )}
-        <CardFooter className="gap-2 justify-end">
+
+        <div className="mt-5 flex gap-2 justify-end">
           {!isNew && (
             <div ref={deleteRef} className="mr-auto">
               {confirmDelete ? (
@@ -314,14 +308,14 @@ function KontekstEditPage() {
               )}
             </div>
           )}
-          <Button variant="outline" onClick={() => navigate({ to: '/' })}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button onClick={() => saveKontekst()} disabled={isPending}>
             {isNew ? 'Create' : 'Update'}
           </Button>
-        </CardFooter>
-      </Card>
-    </>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
