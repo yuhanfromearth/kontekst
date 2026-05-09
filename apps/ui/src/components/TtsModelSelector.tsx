@@ -1,6 +1,6 @@
 import type { DefaultTtsModelResponse, TtsModel } from '@kontekst/dtos';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { ChevronDown, Star } from 'lucide-react';
 import {
   Popover,
@@ -51,9 +51,11 @@ export default function TtsModelSelector({
     });
   }
 
-  const filtered = models.filter((m) =>
-    m.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = models
+    .filter((m) => m.name.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) =>
+      a.id === selected?.id ? -1 : b.id === selected?.id ? 1 : 0
+    );
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -70,12 +72,15 @@ export default function TtsModelSelector({
           className="mb-2"
         />
         <div className="max-h-56 overflow-y-auto flex flex-col gap-0.5">
-          {filtered.map((m) => {
+          {filtered.map((m, idx) => {
             const isDefault = m.id === defaultModel?.modelId;
+            const isSelected = selected?.id === m.id;
+            const showDivider =
+              isSelected && idx === 0 && filtered.length > 1;
             return (
+              <Fragment key={m.id}>
               <div
-                key={m.id}
-                className={`group flex items-center rounded ${selected?.id === m.id ? 'bg-accent' : ''}`}
+                className={`group flex items-center rounded ${isSelected ? 'bg-accent' : ''}`}
               >
                 <button
                   type="button"
@@ -117,6 +122,10 @@ export default function TtsModelSelector({
                   />
                 </button>
               </div>
+              {showDivider && (
+                <div className="my-1 border-t border-border/50" />
+              )}
+              </Fragment>
             );
           })}
           {filtered.length === 0 && (

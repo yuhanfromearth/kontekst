@@ -282,7 +282,7 @@ function SpeechPage() {
           setError(undefined);
         }}
         onKeyDown={(e) => {
-          if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+          if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             generate();
           }
@@ -326,7 +326,7 @@ function SpeechPage() {
             <>
               Generate
               <span className="ml-2 inline-flex items-center justify-center h-5 min-w-5 px-1 bg-muted text-muted-foreground rounded-sm text-xs font-medium">
-                ⌘ + Enter
+                Enter
               </span>
             </>
           )}

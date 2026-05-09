@@ -1,7 +1,7 @@
 import type { DefaultModelResponse, ModelDto } from '@kontekst/dtos';
 import { formatTokens } from '#/lib/tokens';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Input } from '#/components/ui/input';
 import {
   Popover,
@@ -117,8 +117,11 @@ export default function ModelSelector({
           </button>
         </div>
         <div className="max-h-60 overflow-y-auto flex flex-col gap-0.5">
-          {displayModels.map((model) => {
+          {displayModels.map((model, idx) => {
             const isDefault = model.id === defaultModel?.modelId;
+            const isSelected = model.id === selectedModel;
+            const showDivider =
+              isSelected && idx === 0 && displayModels.length > 1;
             const days = model.expirationDate
               ? daysUntil(model.expirationDate)
               : null;
@@ -129,9 +132,9 @@ export default function ModelSelector({
                   : `expires in ${days}d`
                 : null;
             return (
+              <Fragment key={model.id}>
               <div
-                key={model.id}
-                className={`group flex items-center rounded ${model.id === selectedModel ? 'bg-accent' : ''}`}
+                className={`group flex items-center rounded ${isSelected ? 'bg-accent' : ''}`}
               >
                 <button
                   type="button"
@@ -186,6 +189,10 @@ export default function ModelSelector({
                   />
                 </button>
               </div>
+              {showDivider && (
+                <div className="my-1 border-t border-border/50" />
+              )}
+              </Fragment>
             );
           })}
           {displayModels.length === 0 && (
