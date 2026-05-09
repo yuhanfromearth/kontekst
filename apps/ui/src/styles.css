@@ -138,3 +138,28 @@ body {
     @apply font-sans;
   }
 }
+
+@keyframes slow-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slow-fade {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.animate-slow-fade {
+  animation:
+    slow-fade-in 1s ease-out both,
+    slow-fade 3s ease-in-out 1s infinite;
+}
