@@ -1,7 +1,7 @@
 import { Badge } from './ui/badge';
 import { Kbd } from './ui/kbd';
+import KontekstEditor from './KontekstEditor';
 import { useEffect, useState } from 'react';
-import { useNavigate } from '@tanstack/react-router';
 import { useIsMac } from '#/lib/platform';
 
 interface KontekstDisplayProps {
@@ -52,10 +52,11 @@ export default function KontekstDisplay({
   shortcuts,
   defaultKontekst,
 }: KontekstDisplayProps) {
-  const navigate = useNavigate();
   const isMac = useIsMac();
   const [isModHeld, setIsModHeld] = useState(false);
   const [hoveredKontekst, setHoveredKontekst] = useState<string | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editingName, setEditingName] = useState<string | null>(null);
 
   // Auto-select the default kontekst only when there is no existing selection —
   // i.e. on first load. If no default is configured, leave selection empty.
@@ -165,7 +166,8 @@ export default function KontekstDisplay({
             const modClick = isMac ? e.metaKey : e.ctrlKey;
             if (modClick) {
               e.preventDefault();
-              navigate({ to: '/kontekst/$name', params: { name: kontekst } });
+              setEditingName(kontekst);
+              setEditorOpen(true);
             } else if (selected === kontekst) {
               onSelect(undefined);
             } else {
@@ -192,12 +194,18 @@ export default function KontekstDisplay({
         title="Create new Kontekst"
         variant="outline"
         className="cursor-pointer font-mono hover:bg-accent transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110 active:scale-95"
-        onClick={() =>
-          navigate({ to: '/kontekst/$name', params: { name: 'new' } })
-        }
+        onClick={() => {
+          setEditingName(null);
+          setEditorOpen(true);
+        }}
       >
         +
       </Badge>
+      <KontekstEditor
+        name={editingName}
+        open={editorOpen}
+        onOpenChange={setEditorOpen}
+      />
     </div>
   );
 }

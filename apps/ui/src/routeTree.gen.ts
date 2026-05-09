@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SpeechRouteImport } from './routes/speech'
 import { Route as ShortcutsRouteImport } from './routes/shortcuts'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as KontekstNameRouteImport } from './routes/kontekst.$name'
 
 const SpeechRoute = SpeechRouteImport.update({
   id: '/speech',
@@ -29,44 +28,35 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const KontekstNameRoute = KontekstNameRouteImport.update({
-  id: '/kontekst/$name',
-  path: '/kontekst/$name',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/shortcuts': typeof ShortcutsRoute
   '/speech': typeof SpeechRoute
-  '/kontekst/$name': typeof KontekstNameRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/shortcuts': typeof ShortcutsRoute
   '/speech': typeof SpeechRoute
-  '/kontekst/$name': typeof KontekstNameRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/shortcuts': typeof ShortcutsRoute
   '/speech': typeof SpeechRoute
-  '/kontekst/$name': typeof KontekstNameRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/shortcuts' | '/speech' | '/kontekst/$name'
+  fullPaths: '/' | '/shortcuts' | '/speech'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/shortcuts' | '/speech' | '/kontekst/$name'
-  id: '__root__' | '/' | '/shortcuts' | '/speech' | '/kontekst/$name'
+  to: '/' | '/shortcuts' | '/speech'
+  id: '__root__' | '/' | '/shortcuts' | '/speech'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ShortcutsRoute: typeof ShortcutsRoute
   SpeechRoute: typeof SpeechRoute
-  KontekstNameRoute: typeof KontekstNameRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -92,13 +82,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/kontekst/$name': {
-      id: '/kontekst/$name'
-      path: '/kontekst/$name'
-      fullPath: '/kontekst/$name'
-      preLoaderRoute: typeof KontekstNameRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -106,7 +89,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ShortcutsRoute: ShortcutsRoute,
   SpeechRoute: SpeechRoute,
-  KontekstNameRoute: KontekstNameRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
