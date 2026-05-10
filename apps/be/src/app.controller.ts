@@ -36,7 +36,10 @@ import {
 import { ConversationService } from './conversation/conversation.service.js';
 import { SpeechService } from './speech/speech.service.js';
 import { VoicePrefService } from './voice-pref/voice-pref.service.js';
+import { BraveKeyService } from './brave-key/brave-key.service.js';
+import { WebSearchPrefService } from './web-search/web-search-pref.service.js';
 import type {
+  BraveKeyListItem,
   ConversationDto,
   ConversationSummary,
   DefaultModelResponse,
@@ -50,9 +53,12 @@ import type {
   StreamEvent,
   TtsModel,
   VoicePrefsForModel,
+  WebSearchPref,
 } from '@kontekst/dtos';
 import { SetDefaultModelDto } from './dtos/model.dto.js';
 import { CreateKeyDto, SetActiveKeyDto } from './dtos/key.dto.js';
+import { CreateBraveKeyDto, SetActiveBraveKeyDto } from './dtos/brave.dto.js';
+import { SetWebSearchEnabledDto } from './dtos/web-search.dto.js';
 
 @Controller()
 export class AppController {
@@ -64,6 +70,8 @@ export class AppController {
     private readonly modelService: ModelService,
     private readonly speechService: SpeechService,
     private readonly voicePrefService: VoicePrefService,
+    private readonly braveKeyService: BraveKeyService,
+    private readonly webSearchPrefService: WebSearchPrefService,
   ) {}
 
   @Post('chat')
@@ -72,7 +80,8 @@ export class AppController {
     @Req() req: Request,
     @Res() res: Response,
   ): Promise<void> {
-    const { conversationId, kontekstName, message, model } = body;
+    const { conversationId, kontekstName, message, model, webSearchEnabled } =
+      body;
 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -94,6 +103,7 @@ export class AppController {
         message,
         model,
         controller.signal,
+        webSearchEnabled === true,
       )) {
         if (controller.signal.aborted) break;
         write(evt);
@@ -167,6 +177,38 @@ export class AppController {
   @HttpCode(204)
   setActiveKey(@Body() body: SetActiveKeyDto): void {
     this.keyService.setActive(body.id);
+  }
+
+  @Get('brave-keys')
+  listBraveKeys(): BraveKeyListItem[] {
+    return this.braveKeyService.listKeys();
+  }
+
+  @Post('brave-keys')
+  addBraveKey(@Body() body: CreateBraveKeyDto): Promise<BraveKeyListItem> {
+    return this.braveKeyService.addKey(body.label, body.key);
+  }
+
+  @Delete('brave-keys')
+  @HttpCode(204)
+  deleteBraveKey(@Query('id') id: string): void {
+    this.braveKeyService.deleteKey(id);
+  }
+
+  @Post('brave-keys/active')
+  @HttpCode(204)
+  setActiveBraveKey(@Body() body: SetActiveBraveKeyDto): void {
+    this.braveKeyService.setActive(body.id);
+  }
+
+  @Get('web-search/enabled')
+  getWebSearchEnabled(): WebSearchPref {
+    return this.webSearchPrefService.get();
+  }
+
+  @Patch('web-search/enabled')
+  setWebSearchEnabled(@Body() body: SetWebSearchEnabledDto): WebSearchPref {
+    return this.webSearchPrefService.set(body.enabled);
   }
 
   @Get('models')

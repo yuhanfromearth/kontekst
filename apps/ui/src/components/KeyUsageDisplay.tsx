@@ -10,7 +10,7 @@ import { Button } from '#/components/ui/button';
 import { Input } from '#/components/ui/input';
 import { Spinner } from '#/components/ui/spinner';
 import { formatCost } from '#/lib/cost';
-import type { KeyInfo, KeyListItem } from '@kontekst/dtos';
+import type { BraveKeyListItem, KeyInfo, KeyListItem } from '@kontekst/dtos';
 
 export default function KeyUsageDisplay() {
   const queryClient = useQueryClient();
@@ -116,9 +116,19 @@ export default function KeyUsageDisplay() {
         )}
       </PopoverTrigger>
       <PopoverContent className="w-80 p-3" align="end">
-        <p className="text-xs font-semibold tracking-widest text-muted-foreground uppercase mb-2">
-          API keys
-        </p>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <p className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
+            API keys
+          </p>
+          <a
+            href="https://openrouter.ai/workspaces/default/keys/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Manage on OpenRouter
+          </a>
+        </div>
 
         {hasActive && (
           <div className="mb-3">
@@ -265,16 +275,213 @@ export default function KeyUsageDisplay() {
           </div>
         )}
 
-        <a
-          href="https://openrouter.ai/workspaces/default/keys/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-3 pt-2 border-t border-border flex items-center justify-between gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          Manage on OpenRouter
-        </a>
+        <BraveKeysSection />
       </PopoverContent>
     </Popover>
+  );
+}
+
+function BraveKeysSection() {
+  const queryClient = useQueryClient();
+
+  const { data: keys = [] } = useQuery<BraveKeyListItem[]>({
+    queryKey: ['brave-keys'],
+    queryFn: () => fetch('/api/brave-keys').then((res) => res.json()),
+  });
+
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: ['brave-keys'] });
+
+  const setActive = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch('/api/brave-keys/active', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) throw new Error('Failed to set active Brave key');
+    },
+    onSuccess: invalidate,
+  });
+
+  const deleteKey = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/brave-keys?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Failed to delete Brave key');
+    },
+    onSuccess: invalidate,
+  });
+
+  const addKey = useMutation({
+    mutationFn: async (input: { label: string; key: string }) => {
+      const res = await fetch('/api/brave-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as {
+          message?: string;
+        } | null;
+        throw new Error(body?.message ?? 'Failed to add key');
+      }
+    },
+    onSuccess: invalidate,
+  });
+
+  const [adding, setAdding] = useState(false);
+  const [newLabel, setNewLabel] = useState('');
+  const [newKey, setNewKey] = useState('');
+  const [showKey, setShowKey] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+
+  const resetForm = () => {
+    setAdding(false);
+    setNewLabel('');
+    setNewKey('');
+    setShowKey(false);
+    setAddError(null);
+  };
+
+  const submitAdd = async () => {
+    setAddError(null);
+    try {
+      await addKey.mutateAsync({ label: newLabel.trim(), key: newKey.trim() });
+      resetForm();
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : 'Failed to add key');
+    }
+  };
+
+  return (
+    <div className="mt-3 pt-3 border-t border-border">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
+          Brave Search
+        </p>
+        <a
+          href="https://api-dashboard.search.brave.com/app/keys"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Manage on Brave
+        </a>
+      </div>
+
+      {keys.length === 0 && !adding && (
+        <p className="text-xs text-muted-foreground mb-2">
+          Add a Brave key to enable web search.
+        </p>
+      )}
+
+      {keys.length > 0 && (
+        <ul className="mb-2 space-y-0.5">
+          {keys.map((k) => (
+            <li key={k.id}>
+              <div className="flex items-center gap-1.5 group">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!k.isActive) setActive.mutate(k.id);
+                  }}
+                  className="flex-1 flex items-center gap-2 px-2 py-1.5 rounded-md text-left text-xs hover:bg-accent transition-colors cursor-pointer disabled:cursor-default"
+                  disabled={k.isActive || setActive.isPending}
+                >
+                  <Check
+                    className={`size-3 shrink-0 ${k.isActive ? 'opacity-100' : 'opacity-0'}`}
+                  />
+                  <span className="flex-1 truncate">{k.label}</span>
+                  <span className="font-mono text-muted-foreground">
+                    ····{k.keyTail}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => deleteKey.mutate(k.id)}
+                  disabled={deleteKey.isPending}
+                  className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-accent transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
+                  title="Delete key"
+                  aria-label={`Delete Brave key ${k.label}`}
+                >
+                  <Trash2 className="size-3" />
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {!adding && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start text-xs"
+          onClick={() => setAdding(true)}
+        >
+          <Plus className="size-3" />
+          Add Brave key
+        </Button>
+      )}
+
+      {adding && (
+        <div className="space-y-2">
+          <Input
+            placeholder="Label (e.g. Personal)"
+            value={newLabel}
+            onChange={(e) => setNewLabel(e.target.value)}
+            autoFocus
+          />
+          <div className="relative">
+            <Input
+              type={showKey ? 'text' : 'password'}
+              placeholder="BSA..."
+              value={newKey}
+              onChange={(e) => setNewKey(e.target.value)}
+              className="pr-8"
+            />
+            <button
+              type="button"
+              onClick={() => setShowKey((v) => !v)}
+              className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              title={showKey ? 'Hide' : 'Show'}
+              aria-label={showKey ? 'Hide key' : 'Show key'}
+            >
+              {showKey ? (
+                <EyeOff className="size-3.5" />
+              ) : (
+                <Eye className="size-3.5" />
+              )}
+            </button>
+          </div>
+          {addError && <p className="text-xs text-destructive">{addError}</p>}
+          <div className="flex gap-1.5">
+            <Button
+              type="button"
+              size="sm"
+              className="flex-1"
+              onClick={submitAdd}
+              disabled={!newLabel.trim() || !newKey.trim() || addKey.isPending}
+            >
+              {addKey.isPending && <Spinner className="size-3" />}
+              Add
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={resetForm}
+              disabled={addKey.isPending}
+            >
+              <X className="size-3" />
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

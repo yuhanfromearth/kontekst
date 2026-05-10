@@ -1,3 +1,4 @@
+export * from './brave.js';
 export * from './chat.js';
 export * from './conversation.js';
 export * from './key.js';
@@ -6,3 +7,4 @@ export * from './model.js';
 export * from './primitives.js';
 export * from './shortcut.js';
 export * from './speech.js';
+export * from './web-search.js';

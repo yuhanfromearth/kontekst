@@ -4,10 +4,16 @@ import ConversationDisplay from '#/components/ConversationDisplay';
 import ModelSelector from '#/components/ModelSelector';
 import { Button } from '#/components/ui/button';
 import { Textarea } from '#/components/ui/textarea';
-import type { DefaultModelResponse, KeyListItem } from '@kontekst/dtos';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import type {
+  BraveKeyListItem,
+  DefaultModelResponse,
+  KeyListItem,
+  WebSearchPref,
+} from '@kontekst/dtos';
+import type { Search } from '#/components/SearchPills';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Globe } from 'lucide-react';
 import { formatCost } from '#/lib/cost';
 import { formatTokens } from '#/lib/tokens';
 import { streamChat } from '#/lib/chatStream';
@@ -77,6 +83,47 @@ function App() {
   const hasActiveKey = keys.some((k) => k.isActive);
   const showNoKey = !keysLoading && !hasActiveKey;
 
+  const { data: braveKeys = [] } = useQuery<BraveKeyListItem[]>({
+    queryKey: ['brave-keys'],
+    queryFn: () => fetch('/api/brave-keys').then((res) => res.json()),
+  });
+  const hasBraveKey = braveKeys.some((k) => k.isActive);
+
+  const { data: webSearchPref } = useQuery<WebSearchPref>({
+    queryKey: ['web-search', 'enabled'],
+    queryFn: () => fetch('/api/web-search/enabled').then((res) => res.json()),
+  });
+  const webSearchEnabled = webSearchPref?.enabled === true && hasBraveKey;
+
+  const setWebSearchEnabled = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const res = await fetch('/api/web-search/enabled', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled }),
+      });
+      if (!res.ok) throw new Error('Failed to update web search');
+      return (await res.json()) as WebSearchPref;
+    },
+    onMutate: async (enabled) => {
+      await queryClient.cancelQueries({ queryKey: ['web-search', 'enabled'] });
+      const previous = queryClient.getQueryData<WebSearchPref>([
+        'web-search',
+        'enabled',
+      ]);
+      queryClient.setQueryData<WebSearchPref>(['web-search', 'enabled'], {
+        enabled,
+      });
+      return { previous };
+    },
+    onError: (_err, _enabled, ctx) => {
+      if (ctx?.previous)
+        queryClient.setQueryData(['web-search', 'enabled'], ctx.previous);
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: ['web-search', 'enabled'] }),
+  });
+
   const { data: defaultModel } = useQuery<DefaultModelResponse>({
     queryKey: ['models', 'default'],
     queryFn: () => fetch('/api/models/default').then((res) => res.json()),
@@ -128,6 +175,41 @@ function App() {
     setTokenUsage(undefined);
     setConversationCost(0);
     setChatError(undefined);
+    setSearchesByMsgIdx({});
+  };
+
+  // Searches keyed by the assistant message index they belong to. The
+  // current run's target index is captured at submit time and persisted in a
+  // ref so streaming events can attribute pills to the right message.
+  const [searchesByMsgIdx, setSearchesByMsgIdx] = useState<
+    Record<number, Search[]>
+  >({});
+  const currentAssistantIdxRef = useRef<number | null>(null);
+
+  const appendSearch = (search: Search) => {
+    const idx = currentAssistantIdxRef.current;
+    if (idx === null) return;
+    setSearchesByMsgIdx((prev) => ({
+      ...prev,
+      [idx]: [...(prev[idx] ?? []), search],
+    }));
+  };
+
+  const updateLastSearch = (patch: Partial<Search>) => {
+    const idx = currentAssistantIdxRef.current;
+    if (idx === null) return;
+    setSearchesByMsgIdx((prev) => {
+      const list = prev[idx];
+      if (!list || list.length === 0) return prev;
+      const next = list.slice();
+      for (let i = next.length - 1; i >= 0; i--) {
+        if (next[i].resultCount === undefined) {
+          next[i] = { ...next[i], ...patch };
+          break;
+        }
+      }
+      return { ...prev, [idx]: next };
+    });
   };
 
   const runStream = async (payload: {
@@ -135,6 +217,7 @@ function App() {
     conversationId?: string;
     kontekstName?: string;
     model?: string;
+    webSearchEnabled?: boolean;
   }) => {
     const controller = new AbortController();
     abortRef.current = controller;
@@ -183,6 +266,15 @@ function App() {
             queryClient.invalidateQueries({ queryKey: ['keyInfo'] });
             queryClient.invalidateQueries({ queryKey: ['conversations'] });
             break;
+          case 'tool_call':
+            appendSearch({ query: evt.query, hits: [] });
+            break;
+          case 'tool_result':
+            updateLastSearch({
+              resultCount: evt.resultCount,
+              hits: evt.hits,
+            });
+            break;
           case 'error':
             setChatError(evt.message);
             rollback();
@@ -230,6 +322,10 @@ function App() {
     if (isStreaming) return;
     if (blockedByMissingDefault) return;
     const userMessage = input;
+    // The user message goes to messages[messages.length]; the assistant
+    // response will go to the slot after it. Lock that index now so async
+    // tool_call/tool_result events attribute pills to the right message.
+    currentAssistantIdxRef.current = messages.length + 1;
     setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
     setInput('');
     setChatError(undefined);
@@ -238,6 +334,7 @@ function App() {
       conversationId,
       kontekstName: selectedKontekst,
       model: selectedModel || undefined,
+      webSearchEnabled,
     });
   };
 
@@ -327,6 +424,27 @@ function App() {
             />
             <div className="mt-5 flex gap-2">
               <Button
+                type="button"
+                variant={webSearchEnabled ? 'default' : 'outline'}
+                size="icon"
+                className="hover:cursor-pointer"
+                disabled={!hasBraveKey || setWebSearchEnabled.isPending}
+                onClick={() =>
+                  setWebSearchEnabled.mutate(!(webSearchPref?.enabled === true))
+                }
+                title={
+                  hasBraveKey
+                    ? webSearchEnabled
+                      ? 'Web search on (Brave) — click to disable'
+                      : 'Enable web search (Brave)'
+                    : 'Add a Brave Search API key in the wallet menu'
+                }
+                aria-label="Toggle web search"
+                aria-pressed={webSearchEnabled}
+              >
+                <Globe className="size-4" />
+              </Button>
+              <Button
                 className="flex-1 hover:cursor-pointer"
                 variant="outline"
                 type="submit"
@@ -390,7 +508,10 @@ function App() {
             chromeVisible ? 'mt-16' : 'mt-4'
           )}
         >
-          <ConversationDisplay messages={messages} />
+          <ConversationDisplay
+            messages={messages}
+            searchesByMsgIdx={searchesByMsgIdx}
+          />
         </div>
       )}
 

@@ -7,9 +7,18 @@ import type {
 } from '@kontekst/dtos';
 import { JsonStore } from '../common/json-store.js';
 import { KontekstService } from '../kontekst/kontekst.service.js';
-import { LlmService } from '../llm/llm.service.js';
+import { LlmMessage, LlmService, LlmToolCall } from '../llm/llm.service.js';
+import { BraveKeyService } from '../brave-key/brave-key.service.js';
+import {
+  WEB_SEARCH_TOOL,
+  WebSearchService,
+} from '../web-search/web-search.service.js';
 import { ConversationEntry } from './interfaces/conversation.interface.js';
 import { ConversationStore } from './interfaces/conversation-store.type.js';
+
+// Hard cap on tool-calling iterations per turn so a misbehaving model can't
+// loop forever on the user's OpenRouter or Brave quota.
+const MAX_TOOL_ITERATIONS = 5;
 
 @Injectable()
 export class ConversationService {
@@ -21,6 +30,8 @@ export class ConversationService {
   constructor(
     private readonly llmService: LlmService,
     private readonly kontekstService: KontekstService,
+    private readonly braveKeyService: BraveKeyService,
+    private readonly webSearchService: WebSearchService,
   ) {}
 
   async *chatStream(
@@ -29,6 +40,7 @@ export class ConversationService {
     message: string,
     model: string,
     signal: AbortSignal,
+    webSearchEnabled = false,
   ): AsyncGenerator<StreamEvent> {
     const store = this.store.read();
 
@@ -53,9 +65,15 @@ export class ConversationService {
       ? this.kontekstService.getKontekst(conversation.kontekstName)
       : '';
 
-    const turnMessages = [
+    const useTools = webSearchEnabled && this.braveKeyService.hasActiveKey();
+
+    // wireMessages is what we send to the LLM each iteration. It starts with
+    // the persisted history plus the new user message and grows with assistant
+    // tool_calls / tool results across iterations. Persisted history only
+    // tracks final assistant text, not intermediate tool exchanges.
+    const wireMessages: LlmMessage[] = [
       ...conversation.messages,
-      { role: 'user' as const, content: message },
+      { role: 'user', content: message },
     ];
 
     yield { type: 'meta', conversationId: id };
@@ -82,24 +100,90 @@ export class ConversationService {
     }
 
     let accumulated = '';
-    let usage: TokenUsage | undefined;
+    let totalUsageCost = 0;
+    let promptTokens = 0;
+    let completionTokens = 0;
+    let totalTokens = 0;
+    let iterationsUsed = 0;
 
     try {
-      for await (const evt of this.llmService.chatStream(
-        turnMessages,
-        systemPrompt,
-        conversation.model,
-        signal,
-      )) {
-        if (evt.type === 'delta') {
-          accumulated += evt.content;
-          yield { type: 'delta', content: evt.content };
-          if (!titleEmitted && resolvedTitle) {
-            titleEmitted = true;
-            yield { type: 'title', title: resolvedTitle };
+      for (let i = 0; i < MAX_TOOL_ITERATIONS; i++) {
+        iterationsUsed = i + 1;
+        // Reset assistant text per iteration. Only the final iteration's
+        // content (the one that doesn't end with tool_calls) is the answer.
+        let iterationContent = '';
+        let pendingToolCalls: LlmToolCall[] | null = null;
+
+        for await (const evt of this.llmService.chatStream(
+          wireMessages,
+          systemPrompt,
+          conversation.model,
+          signal,
+          useTools ? { tools: [WEB_SEARCH_TOOL] } : {},
+        )) {
+          if (evt.type === 'delta') {
+            iterationContent += evt.content;
+            accumulated += evt.content;
+            yield { type: 'delta', content: evt.content };
+            if (!titleEmitted && resolvedTitle) {
+              titleEmitted = true;
+              yield { type: 'title', title: resolvedTitle };
+            }
+          } else if (evt.type === 'usage') {
+            totalUsageCost += evt.usage.cost;
+            promptTokens += evt.usage.promptTokens;
+            completionTokens += evt.usage.completionTokens;
+            totalTokens += evt.usage.totalTokens;
+          } else if (evt.type === 'tool_calls') {
+            pendingToolCalls = evt.calls;
           }
-        } else if (evt.type === 'usage') {
-          usage = evt.usage;
+        }
+
+        if (!pendingToolCalls || pendingToolCalls.length === 0) {
+          break;
+        }
+
+        // Append the assistant turn that requested the tool calls so the
+        // next iteration sees it in context.
+        wireMessages.push({
+          role: 'assistant',
+          content: iterationContent || null,
+          tool_calls: pendingToolCalls.map((c) => ({
+            id: c.id,
+            type: 'function',
+            function: { name: c.name, arguments: c.arguments },
+          })),
+        });
+
+        for (const call of pendingToolCalls) {
+          const args = parseToolArgs(call.arguments);
+          const query = typeof args.query === 'string' ? args.query : '';
+          const count = typeof args.count === 'number' ? args.count : undefined;
+
+          yield { type: 'tool_call', name: call.name, query };
+
+          let toolPayload: string;
+          let resultCount = 0;
+          let hits: import('@kontekst/dtos').WebSearchHit[] = [];
+          try {
+            if (call.name !== 'web_search') {
+              throw new Error(`Unknown tool '${call.name}'`);
+            }
+            hits = await this.webSearchService.search(query, count);
+            resultCount = hits.length;
+            toolPayload = JSON.stringify(hits);
+          } catch (err) {
+            const detail = err instanceof Error ? err.message : 'Tool failed';
+            toolPayload = JSON.stringify({ error: detail });
+          }
+
+          yield { type: 'tool_result', name: call.name, resultCount, hits };
+
+          wireMessages.push({
+            role: 'tool',
+            tool_call_id: call.id,
+            content: toolPayload,
+          });
         }
       }
 
@@ -113,11 +197,16 @@ export class ConversationService {
         }
       }
 
-      const turnCost = (usage?.cost ?? 0) + titleCost;
+      const turnCost = totalUsageCost + titleCost;
       conversation.totalCost = (conversation.totalCost ?? 0) + turnCost;
 
-      if (usage) {
-        usage.cost = turnCost;
+      if (iterationsUsed > 0 && totalTokens > 0) {
+        const usage: TokenUsage = {
+          promptTokens,
+          completionTokens,
+          totalTokens,
+          cost: turnCost,
+        };
         yield { type: 'usage', usage };
       }
 
@@ -143,8 +232,9 @@ export class ConversationService {
           yield { type: 'title', title: res.title };
         }
       }
-      if (titleCost > 0) {
-        conversation.totalCost = (conversation.totalCost ?? 0) + titleCost;
+      const errorTurnCost = totalUsageCost + titleCost;
+      if (errorTurnCost > 0) {
+        conversation.totalCost = (conversation.totalCost ?? 0) + errorTurnCost;
       }
       if (resolvedTitle) conversation.title = resolvedTitle;
       conversation.updatedAt = Date.now();
@@ -202,5 +292,16 @@ export class ConversationService {
       throw new NotFoundException(`Conversation '${id}' not found`);
     }
     return conversation;
+  }
+}
+
+function parseToolArgs(raw: string): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return parsed && typeof parsed === 'object'
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
   }
 }

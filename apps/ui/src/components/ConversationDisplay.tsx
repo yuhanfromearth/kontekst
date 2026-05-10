@@ -1,11 +1,14 @@
 import type { Message } from '@kontekst/dtos';
 import MarkdownRenderer from '#/components/MarkdownRenderer';
+import SearchPills, { type Search } from '#/components/SearchPills';
 import { useEffect, useRef, useState } from 'react';
 
 export default function ConversationDisplay({
   messages,
+  searchesByMsgIdx = {},
 }: {
   messages: Message[];
+  searchesByMsgIdx?: Record<number, Search[]>;
 }) {
   const spacerRef = useRef<HTMLDivElement>(null);
   const lastUserMessageRef = useRef<HTMLDivElement>(null);
@@ -88,10 +91,22 @@ export default function ConversationDisplay({
             ref={index === lastAssistantIdx ? lastAssistantMessageRef : null}
             className="text-base"
           >
+            {searchesByMsgIdx[index] && searchesByMsgIdx[index].length > 0 && (
+              <SearchPills searches={searchesByMsgIdx[index]} />
+            )}
             <MarkdownRenderer markdownString={message.content} />
           </div>
         )
       )}
+      {/* Pending searches for the assistant slot that hasn't streamed yet —
+          shown immediately when the model starts a tool call so the user
+          sees what's being searched before the answer arrives. */}
+      {searchesByMsgIdx[messages.length] &&
+        searchesByMsgIdx[messages.length].length > 0 && (
+          <div className="text-base">
+            <SearchPills searches={searchesByMsgIdx[messages.length]} />
+          </div>
+        )}
       <div
         aria-hidden="true"
         ref={spacerRef}
