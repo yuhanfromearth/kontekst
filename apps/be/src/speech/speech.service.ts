@@ -21,6 +21,8 @@ import {
   modelSupportsSpeed,
 } from './speech.constants.js';
 
+const INITIAL_DEFAULT_TTS_MODEL = 'openai/gpt-4o-mini-tts-2025-12-15';
+
 @Injectable()
 export class SpeechService {
   private readonly store = new JsonStore<SpeechStore>(
@@ -31,7 +33,7 @@ export class SpeechService {
   );
   private readonly defaultStore = new JsonStore<{ modelId: string | null }>(
     'default-tts-model.json',
-    () => ({ modelId: null }),
+    () => ({ modelId: INITIAL_DEFAULT_TTS_MODEL }),
   );
 
   constructor(private readonly keyService: KeyService) {}
