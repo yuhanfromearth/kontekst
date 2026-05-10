@@ -248,7 +248,9 @@ export default function KeyUsageDisplay() {
                 )}
               </button>
             </div>
-            {addError && <p className="text-xs text-destructive">{addError}</p>}
+            {addError && (
+              <p className="text-xs text-destructive break-words">{addError}</p>
+            )}
             <div className="flex gap-1.5">
               <Button
                 type="button"
@@ -457,7 +459,9 @@ function BraveKeysSection() {
               )}
             </button>
           </div>
-          {addError && <p className="text-xs text-destructive">{addError}</p>}
+          {addError && (
+            <p className="text-xs text-destructive break-words">{addError}</p>
+          )}
           <div className="flex gap-1.5">
             <Button
               type="button"
