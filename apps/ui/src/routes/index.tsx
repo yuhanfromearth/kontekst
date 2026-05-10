@@ -1,20 +1,18 @@
+import ChatHeader from '#/components/ChatHeader';
 import KontekstDisplay from '#/components/KontekstDisplay';
-import KontekstLogo from '#/components/KontekstLogo';
 import ConversationDisplay from '#/components/ConversationDisplay';
-import ConversationHistory from '#/components/ConversationHistory';
-import KeyUsageDisplay from '#/components/KeyUsageDisplay';
 import ModelSelector from '#/components/ModelSelector';
-import ThemeToggle from '#/components/ThemeToggle';
 import { Button } from '#/components/ui/button';
 import { Textarea } from '#/components/ui/textarea';
-import ModeToggle from '#/components/ModeToggle';
 import type { DefaultModelResponse, KeyListItem } from '@kontekst/dtos';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { formatCost } from '#/lib/cost';
 import { formatTokens } from '#/lib/tokens';
 import { streamChat } from '#/lib/chatStream';
 import { isModifierEvent } from '#/lib/platform';
+import { cn } from '#/lib/utils';
 import { useEffect, useRef, useState } from 'react';
 import { useConversation } from '#/components/ConversationContext';
 
@@ -46,11 +44,22 @@ function App() {
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
   const [isStreaming, setIsStreaming] = useState(false);
+  const [slowHint, setSlowHint] = useState(false);
+  const slowHintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryClient = useQueryClient();
+
+  const clearSlowHint = () => {
+    if (slowHintTimerRef.current) {
+      clearTimeout(slowHintTimerRef.current);
+      slowHintTimerRef.current = null;
+    }
+    setSlowHint(false);
+  };
 
   const cancelStream = () => {
     abortRef.current?.abort();
     abortRef.current = null;
+    clearSlowHint();
   };
 
   useEffect(() => {
@@ -110,6 +119,7 @@ function App() {
   }, []);
 
   const [chatError, setChatError] = useState<string | undefined>();
+  const [chromeVisible, setChromeVisible] = useState(true);
 
   const newChat = () => {
     cancelStream();
@@ -129,6 +139,7 @@ function App() {
     const controller = new AbortController();
     abortRef.current = controller;
     setIsStreaming(true);
+    slowHintTimerRef.current = setTimeout(() => setSlowHint(true), 5000);
 
     let assistantStarted = false;
     const rollback = () => {
@@ -143,6 +154,7 @@ function App() {
           case 'piece':
             if (!assistantStarted) {
               assistantStarted = true;
+              clearSlowHint();
               setMessages((prev) => [
                 ...prev,
                 { role: 'assistant', content: '' },
@@ -181,6 +193,7 @@ function App() {
       }
     } finally {
       if (abortRef.current === controller) abortRef.current = null;
+      clearSlowHint();
       setIsStreaming(false);
     }
   };
@@ -233,136 +246,160 @@ function App() {
     submit();
   };
 
-  const navigate = useNavigate();
+  const canToggleChrome = messages.length > 0;
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden px-1">
-      <div className="flex items-center justify-between mb-8 mt-2">
-        <KontekstLogo className="ml-2" />
-        <div className="flex items-center gap-1">
-          <ConversationHistory kontekstList={kontekstList} />
-          <ModeToggle mode="chat" />
-          <KeyUsageDisplay />
-          <ThemeToggle />
-          <button
-            type="button"
-            onClick={() => navigate({ to: '/shortcuts' })}
-            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
-            title="Keyboard shortcuts"
-            aria-label="Keyboard shortcuts"
-          >
-            <span className="size-4 flex items-center justify-center text-sm leading-none">
-              ?
-            </span>
-          </button>
-        </div>
-      </div>
-      <form onSubmit={handleSubmit}>
-        <div className="flex items-center justify-between mb-2">
-          {showNoKey ? (
-            <span />
-          ) : (
-            <ModelSelector
-              selectedModel={selectedModel}
-              selectedModelDto={selectedModelDto}
-              onSelect={(model) => {
-                setSelectedModel(model.id);
-                setSelectedModelDto(model);
-                setModelContextLength(model.contextLength);
+      <div
+        className={cn(
+          'grid transition-[grid-template-rows,opacity] duration-300 ease-in-out',
+          chromeVisible || !canToggleChrome
+            ? 'grid-rows-[1fr] opacity-100'
+            : 'grid-rows-[0fr] opacity-0 pointer-events-none'
+        )}
+      >
+        <div className="overflow-hidden">
+          <ChatHeader kontekstList={kontekstList} />
+          <form onSubmit={handleSubmit}>
+            <div className="flex items-center justify-between mb-2">
+              {showNoKey ? (
+                <span />
+              ) : (
+                <ModelSelector
+                  selectedModel={selectedModel}
+                  selectedModelDto={selectedModelDto}
+                  onSelect={(model) => {
+                    setSelectedModel(model.id);
+                    setSelectedModelDto(model);
+                    setModelContextLength(model.contextLength);
+                  }}
+                />
+              )}
+              <div className="flex items-center gap-3 mr-1 text-xs text-muted-foreground">
+                {conversationCost > 0 && (
+                  <span title="Spent on this conversation">
+                    {formatCost(conversationCost)}
+                  </span>
+                )}
+                {tokenUsage && modelContextLength > 0 && (
+                  <span>
+                    {formatTokens(tokenUsage.totalTokens)} /{' '}
+                    {formatTokens(modelContextLength)} (
+                    {Math.round(
+                      (tokenUsage.totalTokens / modelContextLength) * 100
+                    )}
+                    %)
+                  </span>
+                )}
+              </div>
+            </div>
+            {showNoKey && (
+              <div className="mb-2 rounded-md border border-border bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                Add an OpenRouter API key to start chatting. Open the wallet
+                menu in the top bar.
+              </div>
+            )}
+            {!showNoKey && blockedByMissingDefault && (
+              <div className="mb-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                Your default model{' '}
+                <span className="font-mono">'{defaultModel?.modelId}'</span> is
+                no longer available. Pick a different model and set it to
+                default to continue.
+              </div>
+            )}
+            <Textarea
+              ref={textareaRef}
+              placeholder={
+                showNoKey ? 'Add an API key first…' : 'How can I help you? [/]'
+              }
+              value={input}
+              disabled={showNoKey || blockedByMissingDefault}
+              onChange={(e) => {
+                setInput(e.target.value);
+                setChatError(undefined);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  if (input.trim() !== '' && !isStreaming) submit();
+                }
               }}
             />
-          )}
-          <div className="flex items-center gap-3 mr-1 text-xs text-muted-foreground">
-            {conversationCost > 0 && (
-              <span title="Spent on this conversation">
-                {formatCost(conversationCost)}
-              </span>
+            <div className="mt-5 flex gap-2">
+              <Button
+                className="flex-1 hover:cursor-pointer"
+                variant="outline"
+                type="submit"
+                disabled={
+                  isStreaming ||
+                  showNoKey ||
+                  blockedByMissingDefault ||
+                  input.trim() === ''
+                }
+              >
+                Send
+              </Button>
+              <Button
+                className="hover:cursor-pointer"
+                type="button"
+                variant="outline"
+                disabled={messages.length === 0}
+                onClick={newChat}
+              >
+                New Chat
+              </Button>
+            </div>
+            {chatError && (
+              <p className="text-xs text-destructive mt-2 ml-1">{chatError}</p>
             )}
-            {tokenUsage && modelContextLength > 0 && (
-              <span>
-                {formatTokens(tokenUsage.totalTokens)} /{' '}
-                {formatTokens(modelContextLength)} (
-                {Math.round(
-                  (tokenUsage.totalTokens / modelContextLength) * 100
-                )}
-                %)
-              </span>
-            )}
-          </div>
-        </div>
-        {showNoKey && (
-          <div className="mb-2 rounded-md border border-border bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-            Add an OpenRouter API key to start chatting. Open the wallet menu in
-            the top bar.
-          </div>
-        )}
-        {!showNoKey && blockedByMissingDefault && (
-          <div className="mb-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-            Your default model{' '}
-            <span className="font-mono">'{defaultModel?.modelId}'</span> is no
-            longer available. Pick a different model and set it to default to
-            continue.
-          </div>
-        )}
-        <Textarea
-          ref={textareaRef}
-          placeholder={
-            showNoKey ? 'Add an API key first…' : 'How can I help you? [/]'
-          }
-          value={input}
-          disabled={showNoKey || blockedByMissingDefault}
-          onChange={(e) => {
-            setInput(e.target.value);
-            setChatError(undefined);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              if (input.trim() !== '' && !isStreaming) submit();
-            }
-          }}
-        />
-        <div className="mt-5 flex gap-2">
-          <Button
-            className="flex-1 hover:cursor-pointer"
-            variant="outline"
-            type="submit"
-            disabled={
-              isStreaming ||
-              showNoKey ||
-              blockedByMissingDefault ||
-              input.trim() === ''
-            }
-          >
-            Send
-          </Button>
-          <Button
-            className="hover:cursor-pointer"
-            type="button"
-            variant="outline"
-            disabled={messages.length === 0}
-            onClick={newChat}
-          >
-            New Chat
-          </Button>
-        </div>
-        {chatError && (
-          <p className="text-xs text-destructive mt-2 ml-1">{chatError}</p>
-        )}
-      </form>
+          </form>
 
-      <KontekstDisplay
-        kontekstList={kontekstList}
-        isError={kontekstError}
-        selected={selectedKontekst}
-        onSelect={setSelectedKontekst}
-        shortcuts={shortcuts}
-        defaultKontekst={defaultKontekst}
-      />
+          <KontekstDisplay
+            kontekstList={kontekstList}
+            isError={kontekstError}
+            selected={selectedKontekst}
+            onSelect={setSelectedKontekst}
+            shortcuts={shortcuts}
+            defaultKontekst={defaultKontekst}
+          />
+        </div>
+      </div>
+
+      {canToggleChrome && (
+        <div className="flex justify-center mt-2">
+          <button
+            type="button"
+            onClick={() => setChromeVisible((v) => !v)}
+            className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+            title={chromeVisible ? 'Hide controls' : 'Show controls'}
+            aria-label={chromeVisible ? 'Hide controls' : 'Show controls'}
+          >
+            {chromeVisible ? (
+              <ChevronUp className="size-4" />
+            ) : (
+              <ChevronDown className="size-4" />
+            )}
+          </button>
+        </div>
+      )}
 
       {messages.length > 0 && (
-        <div className="flex-1 min-h-0 overflow-y-auto mt-16">
+        <div
+          className={cn(
+            'flex-1 min-h-0 overflow-y-auto',
+            chromeVisible ? 'mt-16' : 'mt-4'
+          )}
+        >
           <ConversationDisplay messages={messages} />
+        </div>
+      )}
+
+      {slowHint && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-6 flex justify-center px-4">
+          <p className="animate-slow-fade max-w-md text-center text-xs text-muted-foreground">
+            This model is taking longer than usual. Some models can be slow —
+            you can switch to another in the model picker.
+          </p>
         </div>
       )}
     </div>

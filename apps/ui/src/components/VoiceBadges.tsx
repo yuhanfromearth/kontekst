@@ -166,6 +166,10 @@ export default function VoiceBadges({
                 onSelect(v);
               }
             }}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setEditingVoice(v);
+            }}
             onMouseEnter={() => setHoveredVoice(v)}
             onMouseLeave={() => setHoveredVoice(null)}
             variant={selected === v ? 'default' : 'outline'}
