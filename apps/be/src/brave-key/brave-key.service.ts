@@ -89,13 +89,22 @@ export class BraveKeyService {
 
     if (response.ok) return;
 
-    if (response.status === 401 || response.status === 403) {
+    const raw = await response.text().catch(() => '');
+    const parsed = parseBraveError(raw);
+
+    // Brave returns 422 with code SUBSCRIPTION_TOKEN_INVALID for bad keys —
+    // not 401/403 — so prefer the structured code when present.
+    if (
+      parsed?.code === 'SUBSCRIPTION_TOKEN_INVALID' ||
+      response.status === 401 ||
+      response.status === 403
+    ) {
       throw new HttpException('API key rejected by Brave Search', 400);
     }
 
-    const detail = await response.text().catch(() => '');
+    const message = parsed?.detail || response.statusText || 'unknown error';
     throw new HttpException(
-      `Brave Search rejected the key (${response.status}): ${detail || response.statusText}`,
+      `Brave Search rejected the key (${response.status}): ${message}`,
       400,
     );
   }
@@ -125,5 +134,27 @@ export class BraveKeyService {
     }
     target.isActive = true;
     this.store.write(store);
+  }
+}
+
+// Brave returns errors as { error: { code, detail, status }, type: "ErrorResponse" }.
+// Pull out the human-readable detail + machine-readable code, returning null on
+// non-JSON / non-conforming bodies.
+function parseBraveError(
+  raw: string,
+): { code?: string; detail?: string } | null {
+  if (!raw) return null;
+  try {
+    const data = JSON.parse(raw) as {
+      error?: { code?: unknown; detail?: unknown };
+    };
+    const err = data.error;
+    if (!err) return null;
+    return {
+      code: typeof err.code === 'string' ? err.code : undefined,
+      detail: typeof err.detail === 'string' ? err.detail : undefined,
+    };
+  } catch {
+    return null;
   }
 }

@@ -6,7 +6,7 @@ OpenRouter wrapper with minimal UI and local Context Management with utility key
 
 ## Getting started
 
-Requires Node 20+.
+Requires [Node](https://nodejs.org/en/download) 20+.
 
 ```sh
 npx kontekst
