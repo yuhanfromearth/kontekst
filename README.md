@@ -2,7 +2,7 @@
 
 ![kontekst](apps/ui/public/kontekst_animation.gif)
 
-OpenRouter wrapper with minimal UI and local Context Management with utility keyboard shortcuts. Chat with any LLM, at API cost, without the noise. Includes a parallel **speech mode** for OpenRouter's TTS models.
+OpenRouter wrapper with minimal UI and local Context Management with utility keyboard shortcuts. Chat with any LLM, at API cost, without the noise. Includes a parallel **speech mode** for OpenRouter's TTS models and optional **web search** powered by your own Brave Search API key.
 
 ## Getting started
 
@@ -25,6 +25,8 @@ PORT=9000 npx kontekst
 The backend persists all state as JSON files inside `KONTEKST_FOLDER` (default `~/.kontekst`).
 
 - `keys.json` — OpenRouter API keys. Written with mode `0600` (owner read/write only). Manage them from the wallet menu in the UI; chat is disabled until at least one key is added.
+- `brave-keys.json` — Brave Search API keys, also `0600`. Optional; required only if you want web search.
+- `web-search-pref.json` — persisted state of the web-search toggle.
 - `konteksts.json` — named LLM contexts (system prompts).
 - `conversations.json` — full chat history per conversation, including the resolved kontekst, model, messages.
 - `speech-clips.json` + `speech-audio/<id>.{mp3,pcm}` — TTS clip metadata and the raw audio bytes for each generation.

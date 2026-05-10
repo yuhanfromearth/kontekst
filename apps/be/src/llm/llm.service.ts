@@ -1,11 +1,47 @@
 import { Injectable } from '@nestjs/common';
 import { OpenRouter } from '@openrouter/sdk';
-import type { KeyInfo, Message, TokenUsage } from '@kontekst/dtos';
+import type { KeyInfo, TokenUsage } from '@kontekst/dtos';
 import { KeyService } from '../key/key.service.js';
+
+export type LlmToolCall = {
+  id: string;
+  name: string;
+  // Raw stringified JSON arguments as emitted by the model.
+  arguments: string;
+};
 
 export type LlmStreamEvent =
   | { type: 'delta'; content: string }
-  | { type: 'usage'; usage: TokenUsage };
+  | { type: 'usage'; usage: TokenUsage }
+  | { type: 'tool_calls'; calls: LlmToolCall[] };
+
+// OpenAI-compatible message shape sent to OpenRouter. Wider than the public
+// Message DTO to allow assistant tool_calls and tool results.
+export type LlmMessage =
+  | { role: 'system' | 'user'; content: string }
+  | {
+      role: 'assistant';
+      content: string | null;
+      tool_calls?: {
+        id: string;
+        type: 'function';
+        function: { name: string; arguments: string };
+      }[];
+    }
+  | { role: 'tool'; tool_call_id: string; content: string };
+
+export type LlmTool = {
+  type: 'function';
+  function: {
+    name: string;
+    description?: string;
+    parameters?: unknown;
+  };
+};
+
+export interface ChatStreamOptions {
+  tools?: readonly LlmTool[];
+}
 
 // OpenRouter does a pre-flight credit check on `max_tokens × completion_price`.
 // Without an explicit cap it uses the model's full output capacity (often 64k+),
@@ -29,26 +65,36 @@ export class LlmService {
   }
 
   async *chatStream(
-    messages: Message[],
+    messages: LlmMessage[],
     systemPrompt: string,
     model: string,
     signal: AbortSignal,
+    options: ChatStreamOptions = {},
   ): AsyncGenerator<LlmStreamEvent> {
+    const wireMessages: LlmMessage[] = systemPrompt
+      ? [{ role: 'system', content: systemPrompt }, ...messages]
+      : messages;
+
+    const body: Record<string, unknown> = {
+      model,
+      stream: true,
+      max_tokens: CHAT_MAX_TOKENS,
+      usage: { include: true },
+      messages: wireMessages,
+    };
+
+    if (options.tools && options.tools.length > 0) {
+      body.tools = options.tools;
+      body.tool_choice = 'auto';
+    }
+
     const response = await fetch(OPENROUTER_CHAT_URL, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${this.keyService.requireActiveKey()}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model,
-        stream: true,
-        max_tokens: CHAT_MAX_TOKENS,
-        usage: { include: true },
-        messages: systemPrompt
-          ? [{ role: 'system', content: systemPrompt }, ...messages]
-          : messages,
-      }),
+      body: JSON.stringify(body),
       signal,
     });
 
@@ -63,6 +109,13 @@ export class LlmService {
     const decoder = new TextDecoder();
     let buffer = '';
     let usage: TokenUsage | undefined;
+    // Tool calls arrive as deltas keyed by `index`. We accumulate id/name/args
+    // across chunks until `finish_reason === 'tool_calls'`.
+    const toolCallParts = new Map<
+      number,
+      { id: string; name: string; args: string }
+    >();
+    let finishReason: string | undefined;
 
     try {
       while (true) {
@@ -79,7 +132,18 @@ export class LlmService {
             const data = line.slice(5).trim();
             if (!data || data === '[DONE]') continue;
             let chunk: {
-              choices?: { delta?: { content?: string } }[];
+              choices?: {
+                delta?: {
+                  content?: string;
+                  tool_calls?: {
+                    index: number;
+                    id?: string;
+                    type?: string;
+                    function?: { name?: string; arguments?: string };
+                  }[];
+                };
+                finish_reason?: string;
+              }[];
               usage?: {
                 prompt_tokens: number;
                 completion_tokens: number;
@@ -92,8 +156,27 @@ export class LlmService {
             } catch {
               continue;
             }
-            const delta = chunk.choices?.[0]?.delta?.content;
+            const choice = chunk.choices?.[0];
+            const delta = choice?.delta?.content;
             if (delta) yield { type: 'delta', content: delta };
+
+            const toolDeltas = choice?.delta?.tool_calls;
+            if (toolDeltas) {
+              for (const td of toolDeltas) {
+                const part = toolCallParts.get(td.index) ?? {
+                  id: '',
+                  name: '',
+                  args: '',
+                };
+                if (td.id) part.id = td.id;
+                if (td.function?.name) part.name = td.function.name;
+                if (td.function?.arguments) part.args += td.function.arguments;
+                toolCallParts.set(td.index, part);
+              }
+            }
+
+            if (choice?.finish_reason) finishReason = choice.finish_reason;
+
             if (chunk.usage) {
               usage = {
                 promptTokens: chunk.usage.prompt_tokens,
@@ -110,6 +193,13 @@ export class LlmService {
     }
 
     if (usage) yield { type: 'usage', usage };
+
+    if (finishReason === 'tool_calls' && toolCallParts.size > 0) {
+      const calls: LlmToolCall[] = [...toolCallParts.entries()]
+        .sort(([a], [b]) => a - b)
+        .map(([, p]) => ({ id: p.id, name: p.name, arguments: p.args }));
+      yield { type: 'tool_calls', calls };
+    }
   }
 
   async generateTitle(

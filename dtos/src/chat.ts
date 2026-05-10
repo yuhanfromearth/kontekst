@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { WebSearchHitSchema } from './web-search.js';
 
 const DEFAULT_MODEL = 'google/gemini-3-flash-preview';
 
@@ -7,6 +8,7 @@ export const ChatSchema = z.object({
   kontekstName: z.string().optional(),
   message: z.string(),
   model: z.string().optional().default(DEFAULT_MODEL),
+  webSearchEnabled: z.boolean().optional(),
 });
 
 export type ChatRequest = z.infer<typeof ChatSchema>;
@@ -30,6 +32,17 @@ export const StreamEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('delta'), content: z.string() }),
   z.object({ type: z.literal('title'), title: z.string() }),
   z.object({ type: z.literal('usage'), usage: TokenUsageSchema }),
+  z.object({
+    type: z.literal('tool_call'),
+    name: z.string(),
+    query: z.string(),
+  }),
+  z.object({
+    type: z.literal('tool_result'),
+    name: z.string(),
+    resultCount: z.number(),
+    hits: z.array(WebSearchHitSchema),
+  }),
   z.object({ type: z.literal('done') }),
   z.object({ type: z.literal('error'), message: z.string() }),
 ]);

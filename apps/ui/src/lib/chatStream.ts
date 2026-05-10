@@ -1,4 +1,4 @@
-import type { TokenUsage } from '@kontekst/dtos';
+import type { TokenUsage, WebSearchHit } from '@kontekst/dtos';
 import { StreamEventSchema } from '@kontekst/dtos';
 import { createParser } from 'eventsource-parser';
 
@@ -7,6 +7,7 @@ export interface ChatStreamPayload {
   conversationId?: string;
   kontekstName?: string;
   model?: string;
+  webSearchEnabled?: boolean;
 }
 
 export type StreamPiece =
@@ -14,6 +15,13 @@ export type StreamPiece =
   | { type: 'meta'; conversationId: string }
   | { type: 'title' }
   | { type: 'usage'; usage: TokenUsage }
+  | { type: 'tool_call'; name: string; query: string }
+  | {
+      type: 'tool_result';
+      name: string;
+      resultCount: number;
+      hits: WebSearchHit[];
+    }
   | { type: 'error'; message: string }
   | { type: 'done' };
 
@@ -126,6 +134,21 @@ export async function* streamChat(
               break;
             case 'usage':
               queue.push({ type: 'usage', usage: parsed.usage });
+              break;
+            case 'tool_call':
+              queue.push({
+                type: 'tool_call',
+                name: parsed.name,
+                query: parsed.query,
+              });
+              break;
+            case 'tool_result':
+              queue.push({
+                type: 'tool_result',
+                name: parsed.name,
+                resultCount: parsed.resultCount,
+                hits: parsed.hits,
+              });
               break;
             case 'error':
               queue.push({ type: 'error', message: parsed.message });
