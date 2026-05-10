@@ -174,6 +174,11 @@ export default function KontekstDisplay({
               onSelect(kontekst);
             }
           }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            setEditingName(kontekst);
+            setEditorOpen(true);
+          }}
           onMouseEnter={() => setHoveredKontekst(kontekst)}
           onMouseLeave={() => setHoveredKontekst(null)}
           variant={selected === kontekst ? 'default' : 'outline'}
