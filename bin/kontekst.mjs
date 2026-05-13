@@ -1,12 +1,26 @@
 #!/usr/bin/env node
 import { mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawn } from 'node:child_process';
+import { createInterface } from 'node:readline/promises';
+import { stdin, stdout } from 'node:process';
 
 if (!process.env.KONTEKST_FOLDER) {
-  process.env.KONTEKST_FOLDER = join(homedir(), '.kontekst');
+  const defaultFolder = join(homedir(), '.kontekst');
+  if (stdin.isTTY) {
+    const rl = createInterface({ input: stdin, output: stdout });
+    const answer = (
+      await rl.question(`KONTEKST_FOLDER [${defaultFolder}]: `)
+    ).trim();
+    rl.close();
+    process.env.KONTEKST_FOLDER = answer
+      ? resolve(answer.replace(/^~(?=$|\/|\\)/, homedir()))
+      : defaultFolder;
+  } else {
+    process.env.KONTEKST_FOLDER = defaultFolder;
+  }
 }
 mkdirSync(process.env.KONTEKST_FOLDER, { recursive: true });
 
