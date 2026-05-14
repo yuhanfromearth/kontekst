@@ -2,7 +2,7 @@
 
 ![kontekst](apps/ui/public/kontekst_animation.gif)
 
-OpenRouter wrapper with minimal UI and local Context Management with utility keyboard shortcuts. Chat with any LLM, at API cost, without the noise. Includes a parallel **speech mode** for OpenRouter's TTS models and optional **web search** powered by your own Brave Search API key.
+OpenRouter wrapper with minimal UI and local Context Management with utility keyboard shortcuts. Chat with any LLM, at API cost, without the noise. Includes a parallel **speech mode** for OpenRouter's TTS models and optional **web search** skill (Brave Search).
 
 ## Getting started
 
