@@ -1,14 +1,19 @@
 import type { Message } from '@kontekst/dtos';
 import MarkdownRenderer from '#/components/MarkdownRenderer';
 import SearchPills, { type Search } from '#/components/SearchPills';
+import MemoryPills, { type MemoryUpdate } from '#/components/MemoryPills';
 import { useEffect, useRef, useState } from 'react';
 
 export default function ConversationDisplay({
   messages,
   searchesByMsgIdx = {},
+  memoryUpdatesByMsgIdx = {},
+  onOpenMemory,
 }: {
   messages: Message[];
   searchesByMsgIdx?: Record<number, Search[]>;
+  memoryUpdatesByMsgIdx?: Record<number, MemoryUpdate[]>;
+  onOpenMemory?: () => void;
 }) {
   const spacerRef = useRef<HTMLDivElement>(null);
   const lastUserMessageRef = useRef<HTMLDivElement>(null);
@@ -94,19 +99,36 @@ export default function ConversationDisplay({
             {searchesByMsgIdx[index] && searchesByMsgIdx[index].length > 0 && (
               <SearchPills searches={searchesByMsgIdx[index]} />
             )}
+            {memoryUpdatesByMsgIdx[index] &&
+              memoryUpdatesByMsgIdx[index].length > 0 && (
+                <MemoryPills
+                  updates={memoryUpdatesByMsgIdx[index]}
+                  onOpen={() => onOpenMemory?.()}
+                />
+              )}
             <MarkdownRenderer markdownString={message.content} />
           </div>
         )
       )}
-      {/* Pending searches for the assistant slot that hasn't streamed yet —
+      {/* Pending tool activity for the assistant slot that hasn't streamed yet —
           shown immediately when the model starts a tool call so the user
-          sees what's being searched before the answer arrives. */}
-      {searchesByMsgIdx[messages.length] &&
-        searchesByMsgIdx[messages.length].length > 0 && (
-          <div className="text-base">
-            <SearchPills searches={searchesByMsgIdx[messages.length]} />
-          </div>
-        )}
+          sees what's happening before the answer arrives. */}
+      {((searchesByMsgIdx[messages.length]?.length ?? 0) > 0 ||
+        (memoryUpdatesByMsgIdx[messages.length]?.length ?? 0) > 0) && (
+        <div className="text-base">
+          {searchesByMsgIdx[messages.length] &&
+            searchesByMsgIdx[messages.length].length > 0 && (
+              <SearchPills searches={searchesByMsgIdx[messages.length]} />
+            )}
+          {memoryUpdatesByMsgIdx[messages.length] &&
+            memoryUpdatesByMsgIdx[messages.length].length > 0 && (
+              <MemoryPills
+                updates={memoryUpdatesByMsgIdx[messages.length]}
+                onOpen={() => onOpenMemory?.()}
+              />
+            )}
+        </div>
+      )}
       <div
         aria-hidden="true"
         ref={spacerRef}

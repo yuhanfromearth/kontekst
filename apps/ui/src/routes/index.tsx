@@ -11,9 +11,11 @@ import type {
   WebSearchPref,
 } from '@kontekst/dtos';
 import type { Search } from '#/components/SearchPills';
+import type { MemoryUpdate } from '#/components/MemoryPills';
+import MemoryEditor from '#/components/MemoryEditor';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { ChevronDown, ChevronUp, Globe } from 'lucide-react';
+import { Brain, ChevronDown, ChevronUp, Globe } from 'lucide-react';
 import { formatCost } from '#/lib/cost';
 import { formatTokens } from '#/lib/tokens';
 import { streamChat } from '#/lib/chatStream';
@@ -176,13 +178,19 @@ function App() {
     setConversationCost(0);
     setChatError(undefined);
     setSearchesByMsgIdx({});
+    setMemoryUpdatesByMsgIdx({});
   };
+
+  const [memoryOpen, setMemoryOpen] = useState(false);
 
   // Searches keyed by the assistant message index they belong to. The
   // current run's target index is captured at submit time and persisted in a
   // ref so streaming events can attribute pills to the right message.
   const [searchesByMsgIdx, setSearchesByMsgIdx] = useState<
     Record<number, Search[]>
+  >({});
+  const [memoryUpdatesByMsgIdx, setMemoryUpdatesByMsgIdx] = useState<
+    Record<number, MemoryUpdate[]>
   >({});
   const currentAssistantIdxRef = useRef<number | null>(null);
 
@@ -193,6 +201,32 @@ function App() {
       ...prev,
       [idx]: [...(prev[idx] ?? []), search],
     }));
+  };
+
+  const appendMemoryUpdate = () => {
+    const idx = currentAssistantIdxRef.current;
+    if (idx === null) return;
+    setMemoryUpdatesByMsgIdx((prev) => ({
+      ...prev,
+      [idx]: [...(prev[idx] ?? []), { done: false }],
+    }));
+  };
+
+  const completeLastMemoryUpdate = () => {
+    const idx = currentAssistantIdxRef.current;
+    if (idx === null) return;
+    setMemoryUpdatesByMsgIdx((prev) => {
+      const list = prev[idx];
+      if (!list || list.length === 0) return prev;
+      const next = list.slice();
+      for (let i = next.length - 1; i >= 0; i--) {
+        if (!next[i].done) {
+          next[i] = { ...next[i], done: true };
+          break;
+        }
+      }
+      return { ...prev, [idx]: next };
+    });
   };
 
   const updateLastSearch = (patch: Partial<Search>) => {
@@ -274,6 +308,13 @@ function App() {
               resultCount: evt.resultCount,
               hits: evt.hits,
             });
+            break;
+          case 'memory_update':
+            appendMemoryUpdate();
+            break;
+          case 'memory_updated':
+            completeLastMemoryUpdate();
+            queryClient.invalidateQueries({ queryKey: ['memory'] });
             break;
           case 'error':
             setChatError(evt.message);
@@ -445,6 +486,17 @@ function App() {
                 <Globe className="size-4" />
               </Button>
               <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="hover:cursor-pointer"
+                onClick={() => setMemoryOpen(true)}
+                title="Edit global memory"
+                aria-label="Edit global memory"
+              >
+                <Brain className="size-4" />
+              </Button>
+              <Button
                 className="flex-1 hover:cursor-pointer"
                 variant="outline"
                 type="submit"
@@ -511,9 +563,13 @@ function App() {
           <ConversationDisplay
             messages={messages}
             searchesByMsgIdx={searchesByMsgIdx}
+            memoryUpdatesByMsgIdx={memoryUpdatesByMsgIdx}
+            onOpenMemory={() => setMemoryOpen(true)}
           />
         </div>
       )}
+
+      <MemoryEditor open={memoryOpen} onOpenChange={setMemoryOpen} />
 
       {slowHint && (
         <div className="pointer-events-none fixed inset-x-0 bottom-6 flex justify-center px-4">

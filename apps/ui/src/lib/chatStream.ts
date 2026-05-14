@@ -22,6 +22,8 @@ export type StreamPiece =
       resultCount: number;
       hits: WebSearchHit[];
     }
+  | { type: 'memory_update' }
+  | { type: 'memory_updated'; content: string }
   | { type: 'error'; message: string }
   | { type: 'done' };
 
@@ -149,6 +151,12 @@ export async function* streamChat(
                 resultCount: parsed.resultCount,
                 hits: parsed.hits,
               });
+              break;
+            case 'memory_update':
+              queue.push({ type: 'memory_update' });
+              break;
+            case 'memory_updated':
+              queue.push({ type: 'memory_updated', content: parsed.content });
               break;
             case 'error':
               queue.push({ type: 'error', message: parsed.message });
