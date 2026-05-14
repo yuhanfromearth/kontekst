@@ -36,9 +36,9 @@ describe('VoicePrefService', () => {
 
   it('upsert rejects a duplicate shortcut within the same model', () => {
     service.upsert(MODEL, 'alloy', { shortcut: 'cmd+1' });
-    expect(() =>
-      service.upsert(MODEL, 'echo', { shortcut: 'cmd+1' }),
-    ).toThrow(HttpException);
+    expect(() => service.upsert(MODEL, 'echo', { shortcut: 'cmd+1' })).toThrow(
+      HttpException,
+    );
   });
 
   it('upsert allows the same shortcut across different models', () => {
