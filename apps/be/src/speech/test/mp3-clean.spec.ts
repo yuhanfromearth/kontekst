@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cleanMp3 } from './mp3-clean.js';
+import { cleanMp3 } from '../mp3-clean.js';
 
 // MPEG2 Layer III, 24 kHz, 32 kbps, no padding, no CRC.
 // frameSize = floor(72 * 32000 / 24000) = 96 bytes; samplesPerFrame = 576.

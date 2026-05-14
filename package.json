@@ -28,6 +28,7 @@
     "start:prod": "npm run build && node bin/kontekst.mjs",
     "prepack": "npm run build && node scripts/prepack.mjs",
     "postpack": "node scripts/postpack.mjs",
+    "test": "npm run build:dtos && npm run test --workspace=apps/be && npm run test --workspace=apps/ui",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
