@@ -12,7 +12,7 @@ if (!process.env.KONTEKST_FOLDER) {
   if (stdin.isTTY) {
     const rl = createInterface({ input: stdin, output: stdout });
     const answer = (
-      await rl.question(`KONTEKST_FOLDER [${defaultFolder}]: `)
+      await rl.question(`KONTEKST_FOLDER [hit 'Enter' for ${defaultFolder}]: `)
     ).trim();
     rl.close();
     process.env.KONTEKST_FOLDER = answer
