@@ -43,6 +43,11 @@ export const StreamEventSchema = z.discriminatedUnion('type', [
     resultCount: z.number(),
     hits: z.array(WebSearchHitSchema),
   }),
+  z.object({ type: z.literal('memory_update') }),
+  z.object({
+    type: z.literal('memory_updated'),
+    content: z.string(),
+  }),
   z.object({ type: z.literal('done') }),
   z.object({ type: z.literal('error'), message: z.string() }),
 ]);

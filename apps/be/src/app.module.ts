@@ -9,6 +9,7 @@ import { APP_PIPE } from '@nestjs/core';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { KontekstModule } from './kontekst/kontekst.module.js';
+import { MemoryModule } from './memory/memory.module.js';
 import { ConversationModule } from './conversation/conversation.module.js';
 import { KeyModule } from './key/key.module.js';
 import { ModelModule } from './model/model.module.js';
@@ -34,6 +35,7 @@ const clientRoot = join(
     }),
     LlmModule,
     KontekstModule,
+    MemoryModule,
     ConversationModule,
     KeyModule,
     ModelModule,

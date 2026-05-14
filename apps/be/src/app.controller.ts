@@ -10,6 +10,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Put,
   Query,
   Req,
   Res,
@@ -19,6 +20,7 @@ import fs from 'node:fs';
 import { LlmService } from './llm/llm.service.js';
 import { KeyService } from './key/key.service.js';
 import { KontekstService } from './kontekst/kontekst.service.js';
+import { MemoryService } from './memory/memory.service.js';
 import { ModelService } from './model/model.service.js';
 import {
   RenameKontekstDto,
@@ -59,12 +61,15 @@ import { SetDefaultModelDto } from './dtos/model.dto.js';
 import { CreateKeyDto, SetActiveKeyDto } from './dtos/key.dto.js';
 import { CreateBraveKeyDto, SetActiveBraveKeyDto } from './dtos/brave.dto.js';
 import { SetWebSearchEnabledDto } from './dtos/web-search.dto.js';
+import { UpdateMemoryDto } from './dtos/memory.dto.js';
+import type { MemoryDto } from '@kontekst/dtos';
 
 @Controller()
 export class AppController {
   constructor(
     private readonly llmService: LlmService,
     private readonly kontekstService: KontekstService,
+    private readonly memoryService: MemoryService,
     private readonly conversationService: ConversationService,
     private readonly keyService: KeyService,
     private readonly modelService: ModelService,
@@ -268,6 +273,23 @@ export class AppController {
   @HttpCode(204)
   clearDefaultKontekst(): void {
     this.kontekstService.clearDefaultKontekst();
+  }
+
+  @Get('memory')
+  getMemory(): MemoryDto {
+    return { content: this.memoryService.read() };
+  }
+
+  @Put('memory')
+  updateMemory(@Body() body: UpdateMemoryDto): MemoryDto {
+    this.memoryService.write(body.content);
+    return { content: body.content };
+  }
+
+  @Delete('memory')
+  @HttpCode(204)
+  clearMemory(): void {
+    this.memoryService.write('');
   }
 
   @Post('shortcuts')

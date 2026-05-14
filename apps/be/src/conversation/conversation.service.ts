@@ -7,7 +7,14 @@ import type {
 } from '@kontekst/dtos';
 import { JsonStore } from '../common/json-store.js';
 import { KontekstService } from '../kontekst/kontekst.service.js';
-import { LlmMessage, LlmService, LlmToolCall } from '../llm/llm.service.js';
+import { MemoryService } from '../memory/memory.service.js';
+import { MEMORY_UPDATE_TOOL } from '../memory/memory-tool.js';
+import {
+  LlmMessage,
+  LlmService,
+  LlmTool,
+  LlmToolCall,
+} from '../llm/llm.service.js';
 import { BraveKeyService } from '../brave-key/brave-key.service.js';
 import {
   WEB_SEARCH_TOOL,
@@ -30,6 +37,7 @@ export class ConversationService {
   constructor(
     private readonly llmService: LlmService,
     private readonly kontekstService: KontekstService,
+    private readonly memoryService: MemoryService,
     private readonly braveKeyService: BraveKeyService,
     private readonly webSearchService: WebSearchService,
   ) {}
@@ -61,11 +69,16 @@ export class ConversationService {
     }
 
     const conversation = this.findEntry(store, id);
-    const systemPrompt = conversation.kontekstName
+    const kontekstContent = conversation.kontekstName
       ? this.kontekstService.getKontekst(conversation.kontekstName)
       : '';
+    const memoryContent = this.memoryService.read();
+    const systemPrompt = buildSystemPrompt(memoryContent, kontekstContent);
 
-    const useTools = webSearchEnabled && this.braveKeyService.hasActiveKey();
+    const useWebSearch =
+      webSearchEnabled && this.braveKeyService.hasActiveKey();
+    const tools: LlmTool[] = [MEMORY_UPDATE_TOOL];
+    if (useWebSearch) tools.push(WEB_SEARCH_TOOL);
 
     // wireMessages is what we send to the LLM each iteration. It starts with
     // the persisted history plus the new user message and grows with assistant
@@ -119,7 +132,7 @@ export class ConversationService {
           systemPrompt,
           conversation.model,
           signal,
-          useTools ? { tools: [WEB_SEARCH_TOOL] } : {},
+          { tools },
         )) {
           if (evt.type === 'delta') {
             iterationContent += evt.content;
@@ -157,6 +170,28 @@ export class ConversationService {
 
         for (const call of pendingToolCalls) {
           const args = parseToolArgs(call.arguments);
+
+          if (call.name === 'memory_update') {
+            const content =
+              typeof args.content === 'string' ? args.content : '';
+            yield { type: 'memory_update' };
+            let toolPayload: string;
+            try {
+              this.memoryService.write(content);
+              yield { type: 'memory_updated', content };
+              toolPayload = JSON.stringify({ ok: true });
+            } catch (err) {
+              const detail = err instanceof Error ? err.message : 'Tool failed';
+              toolPayload = JSON.stringify({ error: detail });
+            }
+            wireMessages.push({
+              role: 'tool',
+              tool_call_id: call.id,
+              content: toolPayload,
+            });
+            continue;
+          }
+
           const query = typeof args.query === 'string' ? args.query : '';
           const count = typeof args.count === 'number' ? args.count : undefined;
 
@@ -293,6 +328,16 @@ export class ConversationService {
     }
     return conversation;
   }
+}
+
+function buildSystemPrompt(memory: string, kontekst: string): string {
+  const trimmedMemory = memory.trim();
+  const memoryBlock = trimmedMemory
+    ? `<global_memory>\n${trimmedMemory}\n</global_memory>\n\n`
+    : `<global_memory>(empty)</global_memory>\n\n`;
+  const memoryInstructions =
+    "The <global_memory> block above is the user's persistent global memory, shared across every conversation. It is SEPARATE from the role/kontekst instructions that follow below.\n\nWhen the user states durable information about THEMSELVES (their name, role, location, preferences, ongoing projects, or how they want you to behave), call the `memory_update` tool proactively — without asking for permission — to save it. Always pass the COMPLETE new memory contents (preserve existing entries).\n\nNever copy, paraphrase, or infer content from the kontekst / role instructions into memory. Never invent user attributes that the user has not explicitly stated. If the user only shared one fact this turn, only add that one fact. Do not store throwaway task details or secrets. Do all this in the same turn as your normal reply.\n\n";
+  return memoryBlock + memoryInstructions + kontekst;
 }
 
 function parseToolArgs(raw: string): Record<string, unknown> {
