@@ -29,7 +29,7 @@ if (!process.env.KONTEKST_FOLDER) {
       const rl = createInterface({ input: stdin, output: stdout });
       const answer = (
         await rl.question(
-          `KONTEKST_FOLDER [hit 'Enter' for ${defaultFolder}]: `,
+          `KONTEKST_FOLDER [hit 'Enter' for ${defaultFolder}]: `
         )
       ).trim();
       rl.close();
