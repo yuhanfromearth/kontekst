@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, Eye, EyeOff, Plus, Trash2, Wallet, X } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
 import {
   Popover,
@@ -10,6 +11,7 @@ import { Button } from '#/components/ui/button';
 import { Input } from '#/components/ui/input';
 import { Spinner } from '#/components/ui/spinner';
 import { formatCost } from '#/lib/cost';
+import { springPopup } from '#/lib/motion';
 import type { BraveKeyListItem, KeyInfo, KeyListItem } from '@kontekst/dtos';
 
 export default function KeyUsageDisplay() {
@@ -205,77 +207,96 @@ export default function KeyUsageDisplay() {
           </ul>
         )}
 
-        {!adding && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start text-xs"
-            onClick={() => setAdding(true)}
-          >
-            <Plus className="size-3" />
-            Add key
-          </Button>
-        )}
-
-        {adding && (
-          <div className="border-t border-border pt-2 space-y-2">
-            <Input
-              placeholder="Label (e.g. Personal)"
-              value={newLabel}
-              onChange={(e) => setNewLabel(e.target.value)}
-              autoFocus
-            />
-            <div className="relative">
-              <Input
-                type={showKey ? 'text' : 'password'}
-                placeholder="sk-or-v1-..."
-                value={newKey}
-                onChange={(e) => setNewKey(e.target.value)}
-                className="pr-8"
-              />
-              <button
-                type="button"
-                onClick={() => setShowKey((v) => !v)}
-                className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                title={showKey ? 'Hide' : 'Show'}
-                aria-label={showKey ? 'Hide key' : 'Show key'}
-              >
-                {showKey ? (
-                  <EyeOff className="size-3.5" />
-                ) : (
-                  <Eye className="size-3.5" />
-                )}
-              </button>
-            </div>
-            {addError && (
-              <p className="text-xs text-destructive break-words">{addError}</p>
-            )}
-            <div className="flex gap-1.5">
+        <AnimatePresence initial={false} mode="wait">
+          {!adding ? (
+            <motion.div
+              key="add-button"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.12 }}
+            >
               <Button
                 type="button"
-                size="sm"
-                className="flex-1"
-                onClick={submitAdd}
-                disabled={
-                  !newLabel.trim() || !newKey.trim() || addKey.isPending
-                }
-              >
-                {addKey.isPending && <Spinner className="size-3" />}
-                Add
-              </Button>
-              <Button
-                type="button"
-                size="sm"
                 variant="ghost"
-                onClick={resetForm}
-                disabled={addKey.isPending}
+                size="sm"
+                className="w-full justify-start text-xs"
+                onClick={() => setAdding(true)}
               >
-                <X className="size-3" />
+                <Plus className="size-3" />
+                Add key
               </Button>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="add-form"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={springPopup}
+              style={{ overflow: 'hidden' }}
+            >
+              <div className="border-t border-border pt-2 space-y-2">
+                <Input
+                  placeholder="Label (e.g. Personal)"
+                  value={newLabel}
+                  onChange={(e) => setNewLabel(e.target.value)}
+                  autoFocus
+                />
+                <div className="relative">
+                  <Input
+                    type={showKey ? 'text' : 'password'}
+                    placeholder="sk-or-v1-..."
+                    value={newKey}
+                    onChange={(e) => setNewKey(e.target.value)}
+                    className="pr-8"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowKey((v) => !v)}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    title={showKey ? 'Hide' : 'Show'}
+                    aria-label={showKey ? 'Hide key' : 'Show key'}
+                  >
+                    {showKey ? (
+                      <EyeOff className="size-3.5" />
+                    ) : (
+                      <Eye className="size-3.5" />
+                    )}
+                  </button>
+                </div>
+                {addError && (
+                  <p className="text-xs text-destructive break-words">
+                    {addError}
+                  </p>
+                )}
+                <div className="flex gap-1.5">
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="flex-1"
+                    onClick={submitAdd}
+                    disabled={
+                      !newLabel.trim() || !newKey.trim() || addKey.isPending
+                    }
+                  >
+                    {addKey.isPending && <Spinner className="size-3" />}
+                    Add
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={resetForm}
+                    disabled={addKey.isPending}
+                  >
+                    <X className="size-3" />
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <BraveKeysSection />
       </PopoverContent>

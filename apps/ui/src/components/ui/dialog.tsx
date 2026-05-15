@@ -1,9 +1,38 @@
 import { Dialog as DialogPrimitive } from '@base-ui/react/dialog';
+import { AnimatePresence, motion } from 'motion/react';
+import { createContext, useContext, useState } from 'react';
 
+import { springPopup, tweenFast } from '#/lib/motion';
 import { cn } from '#/lib/utils';
 
-function Dialog({ ...props }: DialogPrimitive.Root.Props) {
-  return <DialogPrimitive.Root data-slot="dialog" {...props} />;
+const DialogOpenContext = createContext<boolean>(false);
+
+function Dialog({
+  open: openProp,
+  defaultOpen,
+  onOpenChange,
+  ...props
+}: DialogPrimitive.Root.Props) {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(
+    defaultOpen ?? false
+  );
+  const isControlled = openProp !== undefined;
+  const open = isControlled ? openProp : uncontrolledOpen;
+
+  return (
+    <DialogOpenContext.Provider value={open}>
+      <DialogPrimitive.Root
+        data-slot="dialog"
+        open={openProp}
+        defaultOpen={defaultOpen}
+        onOpenChange={(next, eventDetails) => {
+          if (!isControlled) setUncontrolledOpen(next);
+          onOpenChange?.(next, eventDetails);
+        }}
+        {...props}
+      />
+    </DialogOpenContext.Provider>
+  );
 }
 
 function DialogTrigger({ ...props }: DialogPrimitive.Trigger.Props) {
@@ -19,20 +48,44 @@ function DialogContent({
   children,
   ...props
 }: DialogPrimitive.Popup.Props) {
+  const open = useContext(DialogOpenContext);
+
   return (
-    <DialogPrimitive.Portal>
-      <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm transition-opacity duration-150 data-closed:opacity-0 data-starting-style:opacity-0" />
-      <DialogPrimitive.Popup
-        data-slot="dialog-content"
-        className={cn(
-          'fixed left-1/2 top-1/2 z-50 w-full max-w-140 -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-card text-card-foreground p-5 shadow-2xl ring-1 ring-foreground/10 outline-hidden duration-200 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95',
-          className
-        )}
-        {...props}
-      >
-        {children}
-      </DialogPrimitive.Popup>
-    </DialogPrimitive.Portal>
+    <AnimatePresence>
+      {open && (
+        <DialogPrimitive.Portal keepMounted>
+          <DialogPrimitive.Backdrop
+            render={
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={tweenFast}
+                className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+              />
+            }
+          />
+          <DialogPrimitive.Popup
+            data-slot="dialog-content"
+            render={
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: '-46%' }}
+                animate={{ opacity: 1, scale: 1, y: '-50%' }}
+                exit={{ opacity: 0, scale: 0.95, y: '-48%' }}
+                transition={springPopup}
+              />
+            }
+            className={cn(
+              'fixed left-1/2 top-1/2 z-50 w-full max-w-140 -translate-x-1/2 rounded-2xl bg-card text-card-foreground p-5 shadow-2xl ring-1 ring-foreground/10 outline-hidden',
+              className
+            )}
+            {...props}
+          >
+            {children}
+          </DialogPrimitive.Popup>
+        </DialogPrimitive.Portal>
+      )}
+    </AnimatePresence>
   );
 }
 
