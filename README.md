@@ -15,7 +15,7 @@ npm install -g kontekst
 kontekst
 ```
 
-or 
+or
 
 ```sh
 npx kontekst
