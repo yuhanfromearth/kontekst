@@ -16,6 +16,7 @@ import { ModelModule } from './model/model.module.js';
 import { SpeechModule } from './speech/speech.module.js';
 import { VoicePrefModule } from './voice-pref/voice-pref.module.js';
 import { BraveKeyModule } from './brave-key/brave-key.module.js';
+import { VersionModule } from './version/version.module.js';
 import { WebSearchModule } from './web-search/web-search.module.js';
 
 const clientRoot = join(
@@ -42,6 +43,7 @@ const clientRoot = join(
     SpeechModule,
     VoicePrefModule,
     BraveKeyModule,
+    VersionModule,
     WebSearchModule,
   ],
   controllers: [AppController],

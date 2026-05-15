@@ -39,6 +39,7 @@ import { ConversationService } from './conversation/conversation.service.js';
 import { SpeechService } from './speech/speech.service.js';
 import { VoicePrefService } from './voice-pref/voice-pref.service.js';
 import { BraveKeyService } from './brave-key/brave-key.service.js';
+import { VersionService } from './version/version.service.js';
 import { WebSearchPrefService } from './web-search/web-search-pref.service.js';
 import type {
   BraveKeyListItem,
@@ -54,6 +55,7 @@ import type {
   SpeechClip,
   StreamEvent,
   TtsModel,
+  VersionInfo,
   VoicePrefsForModel,
   WebSearchPref,
 } from '@kontekst/dtos';
@@ -77,6 +79,7 @@ export class AppController {
     private readonly voicePrefService: VoicePrefService,
     private readonly braveKeyService: BraveKeyService,
     private readonly webSearchPrefService: WebSearchPrefService,
+    private readonly versionService: VersionService,
   ) {}
 
   @Post('chat')
@@ -160,6 +163,11 @@ export class AppController {
   @Get('key')
   getKeyInfo(): Promise<KeyInfo> {
     return this.llmService.getKeyInfo();
+  }
+
+  @Get('version')
+  getVersion(): Promise<VersionInfo> {
+    return this.versionService.getVersionInfo();
   }
 
   @Get('keys')

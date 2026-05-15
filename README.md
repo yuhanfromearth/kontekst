@@ -8,17 +8,36 @@ OpenRouter wrapper with minimal UI and local Context Management with utility key
 
 Requires [Node](https://nodejs.org/en/download) 20+.
 
+Install globally once:
+
+```sh
+npm install -g kontekst
+kontekst
+```
+
+or 
+
 ```sh
 npx kontekst
 ```
 
-That's it. The app fetches itself, starts a local server on `http://localhost:8080`, and opens it in your browser. Data is stored in `~/.kontekst` (override with the `KONTEKST_FOLDER` env var).
+The app starts a local server on `http://localhost:8080` and opens it in your browser. Data is stored in `~/.kontekst` (override with the `KONTEKST_FOLDER` env var).
 
 To pick a different port:
 
 ```sh
-PORT=9000 npx kontekst
+PORT=9000 kontekst
 ```
+
+### Updates
+
+Upgrade with:
+
+```sh
+npm install -g kontekst
+```
+
+Set `NO_UPDATE_NOTIFIER=1` to silence the terminal banner.
 
 ## Storage
 
