@@ -12,10 +12,20 @@ const here = dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(readFileSync(join(here, '..', 'package.json'), 'utf8'));
 process.env.KONTEKST_VERSION = pkg.version;
 
-updateNotifier({ pkg, updateCheckInterval: 1000 * 60 * 60 * 24 }).notify({
-  defer: false,
-  isGlobal: true,
+const notifier = updateNotifier({
+  pkg,
+  updateCheckInterval: 1000 * 60 * 60 * 24,
 });
+if (notifier.update) {
+  notifier.notify({
+    defer: false,
+    isGlobal: true,
+    message:
+      `Update available {currentVersion} → {latestVersion}\n` +
+      `Run {updateCommand} to update\n` +
+      `Release notes: https://github.com/yuhanfromearth/kontekst/releases/tag/v{latestVersion}`,
+  });
+}
 
 const configDir = join(homedir(), '.config', 'kontekst');
 const configFile = join(configDir, 'folder');
