@@ -21,7 +21,16 @@ or
 npx kontekst
 ```
 
-The app starts a local server on `http://localhost:8080` and opens it in your browser. Data is stored in `~/.kontekst` (override with the `KONTEKST_FOLDER` env var).
+The app starts a local server on `http://localhost:8080` and opens it in your browser. On first run you're asked where to store data (defaults to `~/.kontekst`); the choice is saved to `~/.config/kontekst/folder` and reused on subsequent runs.
+
+To change the storage folder later, either:
+
+- edit (or delete) `~/.config/kontekst/folder`, or
+- set the `KONTEKST_FOLDER` env var, which overrides the saved value:
+
+  ```sh
+  KONTEKST_FOLDER=/path/to/folder kontekst
+  ```
 
 To pick a different port:
 
@@ -41,7 +50,7 @@ Set `NO_UPDATE_NOTIFIER=1` to silence the terminal banner.
 
 ## Storage
 
-The backend persists all state as JSON files inside `KONTEKST_FOLDER` (default `~/.kontekst`).
+The backend persists all state as JSON files inside `KONTEKST_FOLDER` (default `~/.kontekst`; see above to change it).
 
 - `keys.json` — OpenRouter API keys. Written with mode `0600` (owner read/write only). Manage them from the wallet menu in the UI; chat is disabled until at least one key is added.
 - `brave-keys.json` — Brave Search API keys, also `0600`. Optional; required only if you want web search.

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -17,19 +17,30 @@ updateNotifier({ pkg, updateCheckInterval: 1000 * 60 * 60 * 24 }).notify({
   isGlobal: true,
 });
 
+const configDir = join(homedir(), '.config', 'kontekst');
+const configFile = join(configDir, 'folder');
+
 if (!process.env.KONTEKST_FOLDER) {
-  const defaultFolder = join(homedir(), '.kontekst');
-  if (stdin.isTTY) {
-    const rl = createInterface({ input: stdin, output: stdout });
-    const answer = (
-      await rl.question(`KONTEKST_FOLDER [hit 'Enter' for ${defaultFolder}]: `)
-    ).trim();
-    rl.close();
-    process.env.KONTEKST_FOLDER = answer
-      ? resolve(answer.replace(/^~(?=$|\/|\\)/, homedir()))
-      : defaultFolder;
+  if (existsSync(configFile)) {
+    process.env.KONTEKST_FOLDER = readFileSync(configFile, 'utf8').trim();
   } else {
-    process.env.KONTEKST_FOLDER = defaultFolder;
+    const defaultFolder = join(homedir(), '.kontekst');
+    if (stdin.isTTY) {
+      const rl = createInterface({ input: stdin, output: stdout });
+      const answer = (
+        await rl.question(
+          `KONTEKST_FOLDER [hit 'Enter' for ${defaultFolder}]: `
+        )
+      ).trim();
+      rl.close();
+      process.env.KONTEKST_FOLDER = answer
+        ? resolve(answer.replace(/^~(?=$|\/|\\)/, homedir()))
+        : defaultFolder;
+    } else {
+      process.env.KONTEKST_FOLDER = defaultFolder;
+    }
+    mkdirSync(configDir, { recursive: true });
+    writeFileSync(configFile, process.env.KONTEKST_FOLDER);
   }
 }
 mkdirSync(process.env.KONTEKST_FOLDER, { recursive: true });
