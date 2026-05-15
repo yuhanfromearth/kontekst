@@ -1,18 +1,28 @@
 #!/usr/bin/env node
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
+import updateNotifier from 'update-notifier';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const pkg = JSON.parse(readFileSync(join(here, '..', 'package.json'), 'utf8'));
+process.env.KONTEKST_VERSION = pkg.version;
+
+updateNotifier({ pkg, updateCheckInterval: 1000 * 60 * 60 * 24 }).notify({
+  defer: false,
+  isGlobal: true,
+});
 
 if (!process.env.KONTEKST_FOLDER) {
   const defaultFolder = join(homedir(), '.kontekst');
   if (stdin.isTTY) {
     const rl = createInterface({ input: stdin, output: stdout });
     const answer = (
-      await rl.question(`KONTEKST_FOLDER [${defaultFolder}]: `)
+      await rl.question(`KONTEKST_FOLDER [hit 'Enter' for ${defaultFolder}]: `)
     ).trim();
     rl.close();
     process.env.KONTEKST_FOLDER = answer
@@ -28,7 +38,6 @@ if (!process.env.PORT) {
   process.env.PORT = '8080';
 }
 
-const here = dirname(fileURLToPath(import.meta.url));
 const mainPath = join(here, '..', 'apps', 'be', 'dist', 'main.js');
 
 await import(pathToFileURL(mainPath).href);

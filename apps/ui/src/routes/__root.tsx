@@ -7,6 +7,7 @@ import {
 // import { TanStackDevtools } from "@tanstack/react-devtools";
 // import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 import { ConversationProvider } from '../components/ConversationContext';
+import UpdateBanner from '../components/UpdateBanner';
 
 import appCss from '../styles.css?url';
 
@@ -58,6 +59,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body className="h-dvh overflow-hidden bg-background">
         <main className="h-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col">
+          <UpdateBanner />
           <ConversationProvider>{children}</ConversationProvider>
         </main>
         {/*<TanStackDevtools
