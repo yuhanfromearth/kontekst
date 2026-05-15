@@ -2,7 +2,10 @@ import type { Message } from '@kontekst/dtos';
 import MarkdownRenderer from '#/components/MarkdownRenderer';
 import SearchPills, { type Search } from '#/components/SearchPills';
 import MemoryPills, { type MemoryUpdate } from '#/components/MemoryPills';
+import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
+
+import { springSoft } from '#/lib/motion';
 
 export default function ConversationDisplay({
   messages,
@@ -79,37 +82,48 @@ export default function ConversationDisplay({
 
   return (
     <div className="flex flex-col gap-6">
-      {messages.map((message, index) =>
-        message.role === 'user' ? (
-          <div
-            key={index}
-            ref={index === lastUserIdx ? lastUserMessageRef : null}
-            className="flex justify-end"
-          >
-            <div className="bg-muted rounded-2xl px-4 py-2 max-w-[80%] text-base [&_.prose_p]:my-0">
+      <AnimatePresence initial={false}>
+        {messages.map((message, index) =>
+          message.role === 'user' ? (
+            <motion.div
+              key={index}
+              ref={index === lastUserIdx ? lastUserMessageRef : null}
+              layout="position"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={springSoft}
+              className="flex justify-end"
+            >
+              <div className="bg-muted rounded-2xl px-4 py-2 max-w-[80%] text-base [&_.prose_p]:my-0">
+                <MarkdownRenderer markdownString={message.content} />
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key={index}
+              ref={index === lastAssistantIdx ? lastAssistantMessageRef : null}
+              layout="position"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={springSoft}
+              className="text-base"
+            >
+              {searchesByMsgIdx[index] &&
+                searchesByMsgIdx[index].length > 0 && (
+                  <SearchPills searches={searchesByMsgIdx[index]} />
+                )}
+              {memoryUpdatesByMsgIdx[index] &&
+                memoryUpdatesByMsgIdx[index].length > 0 && (
+                  <MemoryPills
+                    updates={memoryUpdatesByMsgIdx[index]}
+                    onOpen={() => onOpenMemory?.()}
+                  />
+                )}
               <MarkdownRenderer markdownString={message.content} />
-            </div>
-          </div>
-        ) : (
-          <div
-            key={index}
-            ref={index === lastAssistantIdx ? lastAssistantMessageRef : null}
-            className="text-base"
-          >
-            {searchesByMsgIdx[index] && searchesByMsgIdx[index].length > 0 && (
-              <SearchPills searches={searchesByMsgIdx[index]} />
-            )}
-            {memoryUpdatesByMsgIdx[index] &&
-              memoryUpdatesByMsgIdx[index].length > 0 && (
-                <MemoryPills
-                  updates={memoryUpdatesByMsgIdx[index]}
-                  onOpen={() => onOpenMemory?.()}
-                />
-              )}
-            <MarkdownRenderer markdownString={message.content} />
-          </div>
-        )
-      )}
+            </motion.div>
+          )
+        )}
+      </AnimatePresence>
       {/* Pending tool activity for the assistant slot that hasn't streamed yet —
           shown immediately when the model starts a tool call so the user
           sees what's happening before the answer arrives. */}
